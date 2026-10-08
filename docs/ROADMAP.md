@@ -16,7 +16,7 @@
 ```mermaid
 flowchart LR
   subgraph Client
-    W[Web React] 
+    W[Web React]
     M[Mobile Expo - позже]
   end
   W & M -->|HTTPS| C[Caddy]
