@@ -1,0 +1,12 @@
+import type { ReactNode } from "react";
+import { Navigate } from "react-router-dom";
+import { useAuthStore } from "@/stores/auth";
+
+export function ProtectedRoute({ children }: { children: ReactNode }) {
+  const status = useAuthStore((state) => state.status);
+
+  if (status === "loading") return null;
+  if (status === "unauthenticated") return <Navigate to="/login" replace />;
+
+  return <>{children}</>;
+}

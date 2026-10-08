@@ -141,6 +141,80 @@ Scope: backend/app/db/**, backend/migrations/**, docs/adr/**.
 Критерии: alembic upgrade head / downgrade base проходят на чистой БД; тест, создающий по одной записи каждой таблицы.
 ```
 
+### 1.5 — Web: Login/Register, защищённые роуты, auth-store, авто-refresh [QWEN]
+
+Read AGENTS.md rules first. Backend auth (task 1.2) is done; its types live in `@moozzzer/api-client`
+(not yet wired into the web app — see NOTE below). Build the web auth flow on top of the API below.
+
+TASK: Login and Register pages, protected routes, a Zustand auth store, and access-token auto-refresh.
+
+CONTEXT (read first): apps/web/src/App.tsx, apps/web/src/main.tsx, apps/web/src/i18n/index.ts,
+apps/web/src/index.css (neutral-950 bg / neutral-100 text), backend/app/api/v1/auth.py.
+
+INPUT CONTRACT (web is NOT mobile -> no X-Client header; refresh token = httpOnly cookie):
+- POST /api/v1/auth/register  body {email, username, password, invite_code}
+    -> 201 {access_token, token_type:"bearer", expires_in:900, refresh_token:null}
+       sets cookie "refresh_token" (path=/api/v1/auth, HttpOnly, Secure, SameSite=Strict).
+- POST /api/v1/auth/login     body {email_or_username, password} -> 200 same shape + cookie.
+- POST /api/v1/auth/refresh   (no body) -> 200 {access_token, expires_in}; rotates cookie.
+- POST /api/v1/auth/logout    -> 204, deletes cookie.
+- GET  /api/v1/auth/me        header Authorization: Bearer <access_token>
+    -> 200 {id: string, email: string, username: string, role: "admin"|"member", created_at: string}
+Errors: {"detail": "<code>"} with codes invite_invalid, invalid_credentials, account_disabled,
+not_authenticated, invalid_refresh_token, rate_limited (HTTP 429 + Retry-After).
+FastAPI 422 validation: {"detail": [{loc, msg, type, ...}]}.
+
+CREATE:
+- apps/web/src/lib/api.ts
+    Typed fetch helper (no `any`). JSON, credentials:"include". Attaches
+    "Authorization: Bearer <access>" when set. On 401 (not already retried) calls
+    POST /api/v1/auth/refresh once (single-flight via a module-level promise), stores the new
+    access token, retries the original request once. Returns typed result or a normalized error:
+    {status, code} for string detail, {status, errors: [{field, message}]} for 422. Export
+    register(), login(), logout(), refresh(), me() and these TS types:
+      type UserRole = "admin" | "member";
+      type UserDto = { id: string; email: string; username: string; role: UserRole; created_at: string };
+      type TokenResponse = { access_token: string; token_type: "bearer"; expires_in: number; refresh_token: string | null };
+      type RegisterRequest = { email: string; username: string; password: string; invite_code: string };
+      type LoginRequest = { email_or_username: string; password: string };
+    NOTE: these mirror the OpenAPI schemas; stage 8.1 replaces them with `@moozzzer/api-client`.
+- apps/web/src/stores/auth.ts
+    Zustand store: { user: UserDto | null, status: "loading" | "authenticated" | "unauthenticated",
+    init(), login(input), register(input), logout() }. access_token stays in memory only
+    (never localStorage). init(): POST /refresh -> GET /me -> set user; on failure -> unauthenticated.
+- apps/web/src/components/ProtectedRoute.tsx
+    status==="loading" -> null; unauthenticated -> <Navigate to="/login" replace />; else children.
+- apps/web/src/pages/LoginPage.tsx      (email_or_username + password)
+- apps/web/src/pages/RegisterPage.tsx   (email + username + password + invite_code)
+    Both: controlled inputs, basic client-side validation, loading/disabled submit state,
+    map server error codes to i18n messages, link to each other. Minimal Tailwind, neutral palette.
+
+MODIFY:
+- apps/web/src/i18n/index.ts  — add auth.* keys (ru): titles, field labels, placeholders,
+    one message per error code, submit buttons, link text.
+- apps/web/src/App.tsx  — routes: "/login", "/register" public; "/" (placeholder Home:
+    show current user + "Log out") wrapped in ProtectedRoute. Call authStore.init() on mount.
+- apps/web/src/main.tsx  — wrap <App /> in <BrowserRouter>.
+- apps/web/package.json  — add dependencies react-router-dom, zustand (justification: routing +
+    state; api-client types are duplicated locally for now per NOTE). Regenerate pnpm-lock.yaml.
+    No other new dependencies.
+
+RULES: strict TS (`noUnusedLocals`/`noUnusedParameters` on), no `any`, `import type` where isolated
+modules require it, functional components, Tailwind classes only, all UI text via i18n.
+
+AUTO-REFRESH: in addition to the 401-retry in api.ts, schedule a proactive refresh after init():
+setTimeout(init, (expires_in - 60) * 1000); clear it on logout.
+
+DO NOT TOUCH: backend/**, packages/api-client/**, docs/**, Makefile, docker-compose.yml.
+
+DONE WHEN:
+- `make lint-web` (pnpm lint + typecheck) and `pnpm -C apps/web build` pass locally.
+- Manual (`make up`): `python -m app.cli create-admin ...` then `create-invite`; Register with the
+  invite lands authenticated on "/"; Logout clears session; reload keeps session via refresh cookie;
+  going to "/" while logged out redirects to "/login"; bad password shows the mapped error.
+
+OUTPUT: full content of every created/modified file, nothing else.
+
 ### 4.1 — Интерфейс провайдеров + эталон [OPUS]
 ```
 Прочитай AGENTS.md, docs/ROADMAP.md (раздел "Провайдеры"), backend/app/core/config.py.
