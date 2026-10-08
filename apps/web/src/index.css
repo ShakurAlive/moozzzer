@@ -1,9 +1,112 @@
 @import "tailwindcss";
 
+/*
+ * Moozzzer design tokens (stage 2.1).
+ *
+ * Dark theme is the default (and only theme for now). Colors follow the
+ * shadcn/ui convention: raw values live as CSS variables in `:root`, then are
+ * re-exported into Tailwind's `--color-*` namespace via `@theme inline`, so
+ * `bg-background`, `text-foreground`, `border-border`, ... all work.
+ *
+ * Adding a light theme later = a `.light { ... }` block (or flipping `:root`)
+ * that overrides the same variables.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --background: hsl(0 0% 4%); /* app canvas */
+  --foreground: hsl(0 0% 96%); /* primary text */
+  --card: hsl(0 0% 7%); /* cards / panels */
+  --card-foreground: hsl(0 0% 96%);
+  --muted: hsl(0 0% 13%); /* subtle fills / hover */
+  --muted-foreground: hsl(0 0% 60%); /* secondary text */
+
+  /* Interactive */
+  --primary: hsl(0 0% 96%); /* primary buttons */
+  --primary-foreground: hsl(0 0% 7%);
+  --secondary: hsl(0 0% 13%);
+  --secondary-foreground: hsl(0 0% 96%);
+  --accent: hsl(0 0% 15%); /* hover / selection */
+  --accent-foreground: hsl(0 0% 96%);
+  --destructive: hsl(0 72% 51%); /* errors */
+  --destructive-foreground: hsl(0 0% 98%);
+
+  /* Lines & focus */
+  --border: hsl(0 0% 15%);
+  --input: hsl(0 0% 15%);
+  --ring: hsl(0 0% 34%);
+
+  /* Default corner radius */
+  --radius: 0.625rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@theme {
+  /* Typography */
+  --font-sans:
+    "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+
+  /* Radii */
+  --radius-sm: 0.375rem; /* small controls */
+  --radius-md: 0.625rem; /* inputs, buttons */
+  --radius-lg: 0.875rem; /* cards */
+  --radius-xl: 1.25rem; /* large panels */
+  --radius-2xl: 1.75rem; /* modals */
+
+  /* Shadows */
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-panel: 0 8px 24px -8px rgb(0 0 0 / 0.6);
+  --shadow-glass: 0 0 0 1px rgb(255 255 255 / 0.04), 0 16px 40px -16px rgb(0 0 0 / 0.7);
+}
+
 @layer base {
   html,
   body,
   #root {
-    @apply h-full bg-neutral-950 text-neutral-100 antialiased;
+    @apply bg-background text-foreground h-full font-sans antialiased;
   }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scrollbar-color: var(--border) transparent;
+    scrollbar-width: thin;
+  }
+
+  ::selection {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+  }
+}
+
+/* Glass panel: translucent + backdrop-blur (used by the player bar and panels). */
+@utility glass {
+  background-color: hsl(0 0% 100% / 0.04);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid hsl(0 0% 100% / 0.08);
 }

@@ -6,8 +6,8 @@ import { authErrorMessage } from "@/lib/errors";
 import { useAuthStore } from "@/stores/auth";
 
 const inputClass =
-  "w-full rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm " +
-  "text-neutral-100 placeholder-neutral-500 outline-none transition-colors focus:border-neutral-600";
+  "w-full rounded-md border border-input bg-muted px-3 py-2 text-sm " +
+  "text-foreground placeholder-muted-foreground outline-none transition-colors focus:border-ring";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -49,10 +49,10 @@ export function LoginPage() {
           <h1 className="text-2xl font-bold tracking-tight">{t("auth.title.login")}</h1>
         </header>
 
-        {error !== null ? <p className="text-sm text-red-400">{error}</p> : null}
+        {error !== null ? <p className="text-destructive text-sm">{error}</p> : null}
 
         <label className="block space-y-1.5">
-          <span className="text-sm text-neutral-400">{t("auth.label.emailOrUsername")}</span>
+          <span className="text-muted-foreground text-sm">{t("auth.label.emailOrUsername")}</span>
           <input
             className={inputClass}
             type="text"
@@ -65,7 +65,7 @@ export function LoginPage() {
         </label>
 
         <label className="block space-y-1.5">
-          <span className="text-sm text-neutral-400">{t("auth.label.password")}</span>
+          <span className="text-muted-foreground text-sm">{t("auth.label.password")}</span>
           <input
             className={inputClass}
             type="password"
@@ -80,14 +80,14 @@ export function LoginPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-lg bg-neutral-100 px-3 py-2 text-sm font-medium text-neutral-900 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="bg-primary text-primary-foreground w-full rounded-md px-3 py-2 text-sm font-medium transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? t("auth.button.submitting") : t("auth.button.login")}
         </button>
 
-        <p className="text-center text-sm text-neutral-400">
+        <p className="text-muted-foreground text-center text-sm">
           {t("auth.link.noAccount")}{" "}
-          <Link to="/register" className="text-neutral-200 underline underline-offset-2">
+          <Link to="/register" className="text-foreground underline underline-offset-2">
             {t("auth.link.toRegister")}
           </Link>
         </p>
