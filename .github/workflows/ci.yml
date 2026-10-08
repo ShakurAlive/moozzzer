@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    # main is covered by deploy.yml, which calls this workflow before building images.
+    branches-ignore: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backend:
+    name: backend (ruff, mypy, pytest)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: moozzzer
+          POSTGRES_PASSWORD: moozzzer
+          POSTGRES_DB: moozzzer
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U moozzzer -d moozzzer"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+asyncpg://moozzzer:moozzzer@localhost:5432/moozzzer
+      REDIS_URL: redis://localhost:6379/0
+      MEDIA_ROOT: ${{ github.workspace }}/.media
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - run: uv sync --locked
+
+      - name: ruff format
+        run: uv run --no-sync ruff format --check .
+      - name: ruff check
+        run: uv run --no-sync ruff check --output-format=github .
+      - name: mypy
+        run: uv run --no-sync mypy
+      - name: migrations apply
+        run: uv run --no-sync alembic upgrade head
+      - name: pytest
+        run: uv run --no-sync pytest -p no:cacheprovider
+
+  web:
+    name: web (eslint, tsc, build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          # Keep in sync with PNPM_VERSION in apps/web/Dockerfile.
+          version: 10.34.6
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm build
