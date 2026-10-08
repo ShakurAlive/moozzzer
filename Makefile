@@ -51,4 +51,5 @@ revision: env
 gen-client: env
 	mkdir -p $(CLIENT_DIR)/src
 	$(COMPOSE) run --rm --no-deps -T api python -c "import json; from app.main import app; print(json.dumps(app.openapi(), indent=2))" > $(CLIENT_DIR)/openapi.json
-	npx --yes openapi-typescript@7 $(CLIENT_DIR)/openapi.json -o $(CLIENT_DIR)/src/schema.d.ts
+	npx --yes pnpm@10 -C $(CLIENT_DIR) install --frozen-lockfile
+	npx --yes pnpm@10 -C $(CLIENT_DIR) run generate

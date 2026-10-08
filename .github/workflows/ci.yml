@@ -65,6 +65,14 @@ jobs:
         run: uv run --no-sync alembic upgrade head
       - name: pytest
         run: uv run --no-sync pytest -p no:cacheprovider
+      - name: OpenAPI schema is up to date
+        run: |
+          # Same command as scripts/gen-client.ps1 and `make gen-client`.
+          uv run --no-sync python -c "import json; from app.main import app; print(json.dumps(app.openapi(), indent=2))" > ../packages/api-client/openapi.json
+          git diff --exit-code ../packages/api-client/openapi.json || {
+            echo "::error::packages/api-client/openapi.json is stale. Run scripts/gen-client.ps1 (or make gen-client) and commit."
+            exit 1
+          }
 
   web:
     name: web (eslint, tsc, build)
