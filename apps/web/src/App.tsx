@@ -1,9 +1,13 @@
 import { useEffect } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { HomePage } from "@/pages/HomePage";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { LibraryPage } from "@/pages/LibraryPage";
 import { LoginPage } from "@/pages/LoginPage";
+import { PlaylistsPage } from "@/pages/PlaylistsPage";
 import { RegisterPage } from "@/pages/RegisterPage";
+import { SearchPage } from "@/pages/SearchPage";
+import { WavePage } from "@/pages/WavePage";
 import { useAuthStore } from "@/stores/auth";
 
 export function App() {
@@ -17,22 +21,22 @@ export function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+
       <Route
-        path="/"
         element={
           <ProtectedRoute>
-            <HomePage />
+            <AppLayout />
           </ProtectedRoute>
         }
-      />
-      <Route
-        path="*"
-        element={
-          <ProtectedRoute>
-            <HomePage />
-          </ProtectedRoute>
-        }
-      />
+      >
+        <Route index element={<Navigate to="/wave" replace />} />
+        <Route path="wave" element={<WavePage />} />
+        <Route path="search" element={<SearchPage />} />
+        <Route path="library" element={<LibraryPage />} />
+        <Route path="playlists" element={<PlaylistsPage />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/wave" replace />} />
     </Routes>
   );
 }
