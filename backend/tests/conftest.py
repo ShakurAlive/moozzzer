@@ -3,6 +3,7 @@ import os
 import re
 from collections.abc import AsyncIterator
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 import pytest
 from alembic import command
@@ -31,8 +32,13 @@ def _resolve_test_database_url() -> URL:
 
 
 TEST_DATABASE_URL = _resolve_test_database_url()
+# Separate Redis DB (flushed before every test) so tests never touch dev data.
+TEST_REDIS_URL = os.environ.get("TEST_REDIS_URL") or urlunsplit(
+    urlsplit(str(Settings().redis_url))._replace(path="/15")
+)
 # Must happen before anything imports app.db.session (it builds the engine at import time).
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL.render_as_string(hide_password=False)
+os.environ["REDIS_URL"] = TEST_REDIS_URL
 get_settings.cache_clear()
 
 
@@ -86,10 +92,18 @@ async def db_session() -> AsyncIterator[AsyncSession]:
     await engine.dispose()
 
 
+@pytest.fixture(autouse=True)
+async def clean_redis() -> None:
+    from app.core.redis import redis_client
+
+    await redis_client.flushdb()
+
+
 @pytest.fixture
 async def client() -> AsyncIterator[AsyncClient]:
     from app.main import app
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    # https: the refresh cookie is Secure and would not be sent over http.
+    async with AsyncClient(transport=transport, base_url="https://test") as ac:
         yield ac

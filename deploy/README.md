@@ -26,7 +26,7 @@ Secrets (Settings → Secrets and variables → Actions):
 | `SSH_USER` | `deploy` |
 | `SSH_KEY` | private key (ed25519) whose public part is in `~deploy/.ssh/authorized_keys` |
 | `SSH_KNOWN_HOSTS` | recommended: output of `ssh-keyscan -t ed25519 <host>` (without it the key is trusted on first use) |
-| `PROD_ENV` | full content of the prod `.env` (see `.env.example`: `APP_ENV=prod`, strong `POSTGRES_PASSWORD`, `GHCR_OWNER=<lowercase owner>`, `DOMAIN=moozzzer.ekroll.app`, `ACME_EMAIL`) |
+| `PROD_ENV` | full content of the prod `.env` (see `.env.example`: `APP_ENV=prod`, strong `POSTGRES_PASSWORD`, `JWT_SECRET` (>= 32 chars, `openssl rand -base64 48`), `GHCR_OWNER=<lowercase owner>`, `DOMAIN=moozzzer.ekroll.app`, `ACME_EMAIL`) |
 
 Variables (optional): `USE_QEMU=true` — build arm64 images on x64 runners via QEMU if `ubuntu-24.04-arm` is unavailable.
 
@@ -65,6 +65,10 @@ cd /opt/moozzzer
 cat .deploy-tag                                   # currently deployed tag
 ./deploy.sh <tag>                                 # redeploy / roll back to any tag in GHCR
 docker compose -f docker-compose.prod.yml logs -f api worker
+
+# First admin (password is prompted) and registration invites (code is printed once)
+docker compose -f docker-compose.prod.yml exec api python -m app.cli create-admin --email <email> --username <name>
+docker compose -f docker-compose.prod.yml exec api python -m app.cli create-invite --days 7
 ```
 
 `docker login ghcr.io` is needed for manual `./deploy.sh` with a tag that is not pulled yet.
