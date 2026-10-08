@@ -1,8 +1,48 @@
 const ru = {
   "app.title": "Moozzzer",
 
-  "home.loggedInAs": "Вы вошли как",
+  // Navigation
+  "nav.wave": "Моя волна",
+  "nav.search": "Поиск",
+  "nav.library": "Медиатека",
+  "nav.playlists": "Плейлисты",
 
+  // Pages
+  "page.wave.title": "Моя волна",
+  "page.search.title": "Поиск",
+  "page.library.title": "Медиатека",
+  "page.playlists.title": "Плейлисты",
+
+  // Empty states
+  "empty.wave.title": "Моя волна скоро появится",
+  "empty.wave.description": "Персональные рекомендации на основе ваших вкусов будут здесь.",
+  "empty.search.title": "Ищите музыку",
+  "empty.search.description": "Введите запрос, чтобы найти треки на внешних площадках.",
+  "empty.search.noResults": "Ничего не найдено",
+
+  // Player
+  "player.nothingPlaying": "Ничего не играет",
+
+  // Search
+  "search.placeholder": "Что хотите послушать?",
+
+  // Playlists
+  "playlist.create": "Создать плейлист",
+
+  // Toasts
+  "toast.comingSoon": "Скоро появится",
+
+  // Common (aria-labels)
+  "common.play": "Воспроизвести",
+  "common.pause": "Пауза",
+  "common.more": "Ещё",
+  "common.dismiss": "Закрыть",
+  "common.next": "Следующий трек",
+  "common.prev": "Предыдущий трек",
+  "common.shuffle": "Перемешать",
+  "common.repeat": "Повторять",
+
+  // Auth
   "auth.title.login": "Вход",
   "auth.title.register": "Регистрация",
   "auth.label.emailOrUsername": "Email или имя пользователя",
@@ -30,11 +70,6 @@ const ru = {
   "auth.errors.network_error": "Сеть недоступна",
   "auth.errors.validation": "Проверьте правильность заполнения формы",
   "auth.errors.generic": "Что-то пошло не так",
-
-  "health.label": "API",
-  "health.loading": "проверка…",
-  "health.ok": "ok",
-  "health.error": "недоступен",
 } as const;
 
 export type MessageKey = keyof typeof ru;

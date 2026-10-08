@@ -35,3 +35,9 @@ export const staggerContainer: Variants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } },
 };
+
+export const toastItemVariants: Variants = {
+  hidden: { opacity: 0, y: 12, scale: 0.98 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: spring },
+  exit: { opacity: 0, scale: 0.96, transition: tween },
+};
