@@ -55,20 +55,9 @@ flowchart LR
 
 > ⚠️ Юридически: скачивание с площадок нарушает их ToS, а сервисы с DRM (Spotify, Яндекс) аудио не отдают — их используем **только для метаданных**. Для личного/семейного использования без публичного доступа риск минимален, но сервис не должен быть открыт наружу (только инвайты).
 
-### Схема БД (черновик — утверждается в задаче 1.1)
-```
-users(id uuid pk, email unique, username, password_hash null, google_sub unique null, role, created_at)
-invites(code pk, created_by fk, used_by fk null, expires_at)
-refresh_tokens(id, user_id fk, token_hash, expires_at, revoked_at, user_agent)
-tracks(id uuid pk, title, artist, album, duration_ms, isrc null, explicit bool,
-       source_provider, source_id, file_path null, file_size, codec, bitrate,
-       cover_path null, status enum[pending,downloading,ready,failed], error null,
-       orphaned_at null, created_at)   unique(source_provider, source_id)
-user_library(user_id, track_id, added_at)  pk(user_id, track_id)
-playlists(id, user_id, name, description, cover_path, created_at, updated_at)
-playlist_tracks(playlist_id, track_id, position numeric, added_at)
-listen_events(id, user_id, track_id null, provider_ref null, started_at, played_ms, completed, skipped, context enum[search,library,playlist,wave])
-```
+### Схема БД
+Утверждена в задаче 1.1 — актуальная версия и обоснования: [adr/0001-db-schema.md](adr/0001-db-schema.md), код: `backend/app/db/models/`.
+Таблицы: `users`, `invites`, `refresh_tokens`, `tracks`, `user_library`, `playlists`, `playlist_tracks`, `listen_events`.
 **Жизненный цикл файла:** трек «используется», пока есть строка в `user_library` или `playlist_tracks`.
 Когда последняя ссылка удалена → `orphaned_at = now()`. Ночной job удаляет файлы с `orphaned_at < now() - 7 days`
 (grace-период — если случайно удалил, можно вернуть без повторной загрузки).
@@ -139,7 +128,7 @@ listen_events(id, user_id, track_id null, provider_ref null, started_at, played_
 ### Этап 5 — Сохранение треков в библиотеку
 | # | Задача | Кто |
 |---|---|---|
-| 5.1 | `POST /tracks/save`: дедуп (ISRC / provider+id), создание `tracks(status=pending)`, постановка в arq | OPUS |
+| 5.1 | `POST /tracks/save`: дедуп (ISRC / provider+id), создание `tracks(status=pending)`, постановка в arq. ISRC нормализовать (upper, без `-`), невалидный → `NULL` (иначе упадёт CHECK `isrc_format`) | OPUS |
 | 5.2 | Worker: скачивание yt-dlp → ffmpeg → теги + обложка → атомарный move → `ready`; ретраи, лимит параллельности (=1–2, у сервера 2 ядра) | OPUS |
 | 5.3 | Статус загрузки на клиенте (polling или SSE), бейдж «загружается» | QWEN |
 | 5.4 | Админ-страница: диск, кол-во треков, очередь, ошибки | QWEN |
