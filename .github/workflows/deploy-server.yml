@@ -1,0 +1,79 @@
+name: Deploy to server
+
+# Reusable: ships deploy/ files to the server and runs deploy/deploy.sh for an already-pushed tag.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Image tag present in GHCR for api, worker and web
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://moozzzer.ekroll.app
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      APP_DIR: /opt/moozzzer
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: deploy
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          : "${SSH_HOST:?secret SSH_HOST is not set}" "${SSH_USER:?secret SSH_USER is not set}" "${SSH_KEY:?secret SSH_KEY is not set}"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          if [ -n "$SSH_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "::warning::SSH_KNOWN_HOSTS secret is not set; trusting host key from ssh-keyscan (TOFU)."
+            ssh-keyscan -T 15 -H "$SSH_HOST" > ~/.ssh/known_hosts
+          fi
+          cat > ~/.ssh/config <<EOF
+          Host prod
+            HostName $SSH_HOST
+            User $SSH_USER
+            IdentityFile ~/.ssh/id_deploy
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 30
+          EOF
+
+      - name: Upload compose files and .env
+        env:
+          PROD_ENV: ${{ secrets.PROD_ENV }}
+        run: |
+          : "${PROD_ENV:?secret PROD_ENV is not set}"
+          scp -q deploy/docker-compose.prod.yml deploy/Caddyfile deploy/deploy.sh "prod:$APP_DIR/"
+          # Secret goes via stdin so it never appears in process args or logs.
+          # shellcheck disable=SC2029 # APP_DIR is meant to expand locally
+          printf '%s\n' "$PROD_ENV" | ssh prod "umask 077 && cat > '$APP_DIR/.env.tmp' && mv '$APP_DIR/.env.tmp' '$APP_DIR/.env' && chmod +x '$APP_DIR/deploy.sh'"
+
+      - name: Deploy ${{ inputs.tag }}
+        env:
+          TAG: ${{ inputs.tag }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          # Short-lived job token for `docker login` on the server; deploy.sh logs out on exit.
+          # shellcheck disable=SC2029 # args are meant to expand locally
+          printf '%s' "$GHCR_TOKEN" | ssh prod "GHCR_USER='$GHCR_USER' '$APP_DIR/deploy.sh' '$TAG'"
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf ~/.ssh

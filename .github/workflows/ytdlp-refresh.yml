@@ -1,0 +1,93 @@
+name: Refresh yt-dlp
+
+# Weekly: rebuild the worker from the current main with the newest yt-dlp and redeploy.
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ${{ vars.USE_QEMU == 'true' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.vars.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - id: vars
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          sha="$(git rev-parse HEAD)"
+          {
+            echo "registry=ghcr.io/${owner}"
+            echo "base=${sha}"
+            echo "tag=${sha}-yt$(date -u +%Y%m%d)"
+            echo "stamp=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          } >> "$GITHUB_OUTPUT"
+
+      - if: vars.USE_QEMU == 'true'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.vars.outputs.registry }}/moozzzer-worker
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: backend
+          target: worker
+          platforms: linux/arm64
+          push: true
+          pull: true
+          provenance: false
+          build-args: YTDLP_REFRESH=${{ steps.vars.outputs.stamp }}
+          tags: |
+            ${{ steps.vars.outputs.registry }}/moozzzer-worker:${{ steps.vars.outputs.tag }}
+            ${{ steps.vars.outputs.registry }}/moozzzer-worker:latest
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=worker
+          cache-to: type=gha,scope=worker,mode=max
+
+      # Deploy uses one TAG for all services, so give api/web the same new tag (manifest copy, no rebuild).
+      - name: Retag api and web
+        env:
+          REGISTRY: ${{ steps.vars.outputs.registry }}
+          BASE: ${{ steps.vars.outputs.base }}
+          TAG: ${{ steps.vars.outputs.tag }}
+        run: |
+          for img in api web; do
+            docker buildx imagetools create -t "$REGISTRY/moozzzer-$img:$TAG" "$REGISTRY/moozzzer-$img:$BASE"
+          done
+
+  deploy:
+    needs: build
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/deploy-server.yml
+    with:
+      tag: ${{ needs.build.outputs.tag }}
+    secrets: inherit

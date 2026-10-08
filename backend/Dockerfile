@@ -65,6 +65,14 @@ FROM runtime AS worker
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg \
  && rm -rf /var/lib/apt/lists/*
+# Weekly CI rebuild passes a fresh value to bypass uv.lock and pull the newest yt-dlp (no-op until it is a dependency).
+ARG YTDLP_REFRESH=""
+RUN --mount=from=uv,source=/uv,target=/bin/uv \
+    if [ -n "$YTDLP_REFRESH" ] && python -c "import yt_dlp" 2>/dev/null; then \
+      UV_PYTHON_DOWNLOADS=never uv pip install --no-cache --python /opt/venv/bin/python \
+        --upgrade-package yt-dlp yt-dlp \
+      && python -c "import yt_dlp.version as v; print('yt-dlp', v.__version__)"; \
+    fi
 USER app
 CMD ["arq", "app.workers.main.WorkerSettings"]
 
