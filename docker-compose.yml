@@ -1,0 +1,85 @@
+# Local development. Usage: `make up` (or `docker compose up --build`).
+name: moozzzer-dev
+
+x-backend: &backend
+  build:
+    context: ./backend
+    target: dev
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    APP_ENV: dev
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-moozzzer}:${POSTGRES_PASSWORD:-moozzzer}@postgres:5432/${POSTGRES_DB:-moozzzer}
+    REDIS_URL: redis://redis:6379/0
+    MEDIA_ROOT: /data/media
+    # Bind mounts from Windows/macOS do not propagate inotify events.
+    WATCHFILES_FORCE_POLLING: "true"
+  volumes:
+    - ./backend:/app
+    - media:/data/media
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-moozzzer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-moozzzer}
+      POSTGRES_DB: ${POSTGRES_DB:-moozzzer}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    <<: *backend
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "app"]
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  worker:
+    <<: *backend
+    command: ["arq", "--watch", "app", "app.workers.main.WorkerSettings"]
+
+  web:
+    build:
+      context: ./apps/web
+      target: dev
+    environment:
+      VITE_API_PROXY: http://api:8000
+      VITE_USE_POLLING: "true"
+    ports:
+      - "127.0.0.1:5173:5173"
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    depends_on:
+      - api
+
+volumes:
+  pg_data:
+  redis_data:
+  media:

@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@layer base {
+  html,
+  body,
+  #root {
+    @apply h-full bg-neutral-950 text-neutral-100 antialiased;
+  }
+}
