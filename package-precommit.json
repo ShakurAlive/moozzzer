@@ -1,0 +1,14 @@
+{
+  "name": "moozzzer-precommit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prettier:check": "prettier --check apps/web/",
+    "prettier:write": "prettier --write apps/web/"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.9",
+    "prettier-plugin-tailwindcss": "^0.8.1"
+  }
+}
