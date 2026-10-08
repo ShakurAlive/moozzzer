@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from app.api.v1 import api_router
 from app.core.config import get_settings
+from app.core.errors import AppError, app_error_handler
 from app.core.redis import redis_client
 from app.db.session import engine
 
@@ -29,6 +30,7 @@ def create_app() -> FastAPI:
     )
     # /api/health stays unversioned for probes; business endpoints will live under /api/v1.
     app.include_router(api_router, prefix="/api")
+    app.add_exception_handler(AppError, app_error_handler)
     return app
 
 
