@@ -1,63 +1,87 @@
 import { Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { TrackCard } from "@/components/ui/TrackCard";
+import { SearchResultRow } from "@/components/ui/SearchResultRow";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { t } from "@/i18n";
-import type { Track } from "@/lib/types";
+import { fetchPreview, searchTracks, type SearchResult } from "@/lib/api";
 import { toast } from "@/stores/toast";
-
-const MOCK_RESULTS: Track[] = [
-  {
-    id: "s1",
-    title: "Blinding Lights",
-    artist: "The Weeknd",
-    album: "After Hours",
-    duration: 200,
-    coverUrl: null,
-    explicit: false,
-  },
-  {
-    id: "s2",
-    title: "HUMBLE.",
-    artist: "Kendrick Lamar",
-    album: "DAMN.",
-    duration: 177,
-    coverUrl: null,
-    explicit: true,
-  },
-  {
-    id: "s3",
-    title: "Midnight City",
-    artist: "M83",
-    album: "Hurry Up, We're Dreaming",
-    duration: 244,
-    coverUrl: null,
-    explicit: false,
-  },
-  {
-    id: "s4",
-    title: "SICKO MODE",
-    artist: "Travis Scott",
-    album: "ASTROWORLD",
-    duration: 312,
-    coverUrl: null,
-    explicit: true,
-  },
-  {
-    id: "s5",
-    title: "Sweater Weather",
-    artist: "The Neighbourhood",
-    album: "I Love You.",
-    duration: 244,
-    coverUrl: null,
-    explicit: false,
-  },
-];
 
 export function SearchPage() {
   const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [playingKey, setPlayingKey] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const hasQuery = query.trim() !== "";
-  const results = hasQuery ? MOCK_RESULTS : [];
+
+  useEffect(() => {
+    const q = query.trim();
+    if (q === "") return;
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const data = await searchTracks(q);
+          if (!cancelled) {
+            setResults(data);
+            setError(false);
+            setLoading(false);
+          }
+        } catch {
+          if (!cancelled) {
+            setError(true);
+            setLoading(false);
+          }
+        }
+      })();
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+    };
+  }, []);
+
+  const togglePlay = (result: SearchResult) => {
+    void playPreview(result);
+  };
+
+  async function playPreview(result: SearchResult): Promise<void> {
+    const key = `${result.provider}:${result.source_id}`;
+    if (playingKey === key) {
+      audioRef.current?.pause();
+      setPlayingKey(null);
+      return;
+    }
+
+    audioRef.current?.pause();
+    setPlayingKey(key);
+
+    try {
+      const blob = await fetchPreview(result.provider, result.source_id);
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => {
+        setPlayingKey(null);
+        URL.revokeObjectURL(url);
+      };
+      await audio.play();
+    } catch {
+      setPlayingKey(null);
+      toast({ title: t("search.previewFailed"), variant: "error" });
+    }
+  }
 
   return (
     <section className="space-y-6">
@@ -72,14 +96,35 @@ export function SearchPage() {
           type="search"
           value={query}
           onChange={(event) => {
-            setQuery(event.target.value);
+            const value = event.target.value;
+            setQuery(value);
+            if (value.trim() === "") {
+              setResults([]);
+              setLoading(false);
+              setError(false);
+            } else {
+              setLoading(true);
+              setError(false);
+            }
           }}
           placeholder={t("search.placeholder")}
           className="border-input bg-muted text-foreground placeholder-muted-foreground focus:border-ring w-full rounded-md border py-2 pr-3 pl-10 text-sm transition-colors outline-none"
         />
       </div>
 
-      {results.length === 0 ? (
+      {loading ? (
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Skeleton key={index} className="h-14 w-full" />
+          ))}
+        </div>
+      ) : error ? (
+        <EmptyState
+          icon={Search}
+          title={t("search.error")}
+          className="min-h-[40vh] justify-center"
+        />
+      ) : results.length === 0 ? (
         <EmptyState
           icon={Search}
           title={hasQuery ? t("empty.search.noResults") : t("empty.search.title")}
@@ -87,16 +132,26 @@ export function SearchPage() {
           className="min-h-[40vh] justify-center"
         />
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {results.map((track) => (
-            <TrackCard
-              key={track.id}
-              track={track}
-              onPlay={() => {
-                toast({ title: track.title, description: t("toast.comingSoon") });
-              }}
-            />
-          ))}
+        <div className="flex flex-col gap-1">
+          {results.map((result) => {
+            const key = `${result.provider}:${result.source_id}`;
+            return (
+              <SearchResultRow
+                key={key}
+                result={result}
+                isPlaying={playingKey === key}
+                onPlay={() => {
+                  togglePlay(result);
+                }}
+                onLike={() => {
+                  toast({ title: t("search.like"), description: t("toast.comingSoon") });
+                }}
+                onMenu={() => {
+                  toast({ title: t("search.addToPlaylist"), description: t("toast.comingSoon") });
+                }}
+              />
+            );
+          })}
         </div>
       )}
     </section>

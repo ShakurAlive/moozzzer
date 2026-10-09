@@ -31,6 +31,18 @@ export type LoginRequest = {
   password: string;
 };
 
+export type SearchResult = {
+  provider: string;
+  source_id: string;
+  title: string;
+  artist: string;
+  album: string | null;
+  duration_ms: number | null;
+  cover_url: string | null;
+  isrc: string | null;
+  explicit: boolean;
+};
+
 export type FieldError = {
   field: string;
   message: string;
@@ -49,8 +61,6 @@ export class ApiError extends Error {
     this.errors = errors;
   }
 }
-
-const BASE = "/api/v1/auth";
 
 let accessToken: string | null = null;
 
@@ -94,7 +104,7 @@ function rawRequest(path: string, options: RequestOptions): Promise<Response> {
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
   if (options.auth && accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-  return fetch(`${BASE}${path}`, {
+  return fetch(path, {
     method: options.method ?? "GET",
     headers,
     credentials: "include",
@@ -139,7 +149,7 @@ async function toApiError(response: Response): Promise<ApiError> {
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   let response = await fetchResponse(path, options);
 
-  if (response.status === 401 && options.auth && path !== "/refresh") {
+  if (response.status === 401 && options.auth) {
     await refreshAccessToken();
     response = await fetchResponse(path, options);
   }
@@ -160,7 +170,7 @@ let refreshInFlight: Promise<void> | null = null;
 
 async function refreshAccessToken(): Promise<void> {
   if (!refreshInFlight) {
-    refreshInFlight = request<TokenResponse>("/refresh", { method: "POST" })
+    refreshInFlight = request<TokenResponse>("/api/v1/auth/refresh", { method: "POST" })
       .then((tokens) => {
         setAccessToken(tokens.access_token);
       })
@@ -172,21 +182,46 @@ async function refreshAccessToken(): Promise<void> {
 }
 
 export function refresh(): Promise<TokenResponse> {
-  return request<TokenResponse>("/refresh", { method: "POST" });
+  return request<TokenResponse>("/api/v1/auth/refresh", { method: "POST" });
 }
 
 export function me(): Promise<UserDto> {
-  return request<UserDto>("/me", { auth: true });
+  return request<UserDto>("/api/v1/auth/me", { auth: true });
 }
 
 export function login(input: LoginRequest): Promise<TokenResponse> {
-  return request<TokenResponse>("/login", { method: "POST", body: input });
+  return request<TokenResponse>("/api/v1/auth/login", { method: "POST", body: input });
 }
 
 export function register(input: RegisterRequest): Promise<TokenResponse> {
-  return request<TokenResponse>("/register", { method: "POST", body: input });
+  return request<TokenResponse>("/api/v1/auth/register", { method: "POST", body: input });
 }
 
 export async function logout(): Promise<void> {
-  await request<unknown>("/logout", { method: "POST" });
+  await request<unknown>("/api/v1/auth/logout", { method: "POST" });
+}
+
+export function searchTracks(query: string): Promise<SearchResult[]> {
+  return request<SearchResult[]>(`/api/v1/search?q=${encodeURIComponent(query)}`, {
+    auth: true,
+  });
+}
+
+export function previewUrl(provider: string, sourceId: string): string {
+  return `/api/v1/preview/${provider}/${encodeURIComponent(sourceId)}`;
+}
+
+export async function fetchPreview(provider: string, sourceId: string): Promise<Blob> {
+  let response = await fetchResponse(previewUrl(provider, sourceId), { auth: true });
+
+  if (response.status === 401) {
+    await refreshAccessToken();
+    response = await fetchResponse(previewUrl(provider, sourceId), { auth: true });
+  }
+
+  if (!response.ok) {
+    throw await toApiError(response);
+  }
+
+  return response.blob();
 }

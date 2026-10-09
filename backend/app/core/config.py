@@ -28,6 +28,13 @@ class Settings(BaseSettings):
     auth_rate_limit_per_minute: int = 5
     auth_rate_limit_ip_per_minute: int = 20
 
+    # Enabled provider keys (comma-separated); see app/providers/registry.py.
+    providers_metadata: str = "youtube_music"
+    providers_audio: str = "youtube_music,soundcloud"
+    providers_timeout_seconds: float = 10.0
+    providers_cache_ttl_seconds: int = 300
+    providers_stream_cache_ttl_seconds: int = 1800
+
     @model_validator(mode="after")
     def _check_jwt_secret(self) -> Self:
         secret = self.jwt_secret.get_secret_value()
