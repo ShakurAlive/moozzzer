@@ -6,6 +6,7 @@ export * from "./schema.js";
 export type UserDto = components["schemas"]["UserOut"];
 export type TokenResponse = components["schemas"]["TokenResponse"];
 export type HealthReport = components["schemas"]["HealthReport"];
+export type TrackCandidate = components["schemas"]["TrackCandidate"];
 
 // Request types
 export type RegisterRequest = components["schemas"]["RegisterRequest"];

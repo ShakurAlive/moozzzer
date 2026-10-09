@@ -25,6 +25,14 @@ const ru = {
 
   // Search
   "search.placeholder": "Что хотите послушать?",
+  "search.error": "Не удалось выполнить поиск",
+  "search.previewFailed": "Не удалось воспроизвести",
+  "search.like": "Нравится",
+  "search.addToPlaylist": "В плейлист",
+
+  // Sources
+  "source.youtube_music": "YouTube Music",
+  "source.soundcloud": "SoundCloud",
 
   // Playlists
   "playlist.create": "Создать плейлист",

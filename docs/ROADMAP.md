@@ -68,92 +68,102 @@ flowchart LR
 
 Каждый этап заканчивается **рабочей версией на сервере**. Не начинать следующий, пока текущий не задеплоен.
 
+**Статус:** ✅ готово (в `main`) · 🟡 реализовано, в ветке (не смерджено) · ⬜ предстоит
+
+> 🔀 Ветка `demo/integry-4.6` содержит реализацию поиска и предпрослушивания — **4.1, 4.2, 4.6, 4.7, 4.8**
+> (провайдеры YouTube Music + SoundCloud, агрегатор поиска `GET /search`, preview-стриминг `GET /preview`, web-поиск).
+> В `main` ещё не смерджена.
+
 ### Этап 0 — Фундамент и CI/CD
 Цель: «Hello world» на HTTPS-домене, автодеплой из `main`.
 
-| # | Задача | Кто |
-|---|---|---|
-| 0.1 | Сервер: Docker, пользователь `deploy`, SSH-ключ, открыть 80/443 в Oracle Security List **и** в iptables (у Oracle Ubuntu есть свои правила!), DNS: `A moozzzer.ekroll.app → IP сервера` в Cloudflare (DNS only) | ВЫ |
-| 0.2 | Скелет монорепо: `backend/` (FastAPI + `/api/health`), `apps/web/` (Vite+React+TS+Tailwind), Dockerfiles (multi-stage, arm64), `docker-compose.yml` (dev) и `deploy/docker-compose.prod.yml`, Caddyfile, `.env.example`, `Makefile` | OPUS |
-| 0.3 | GitHub Actions: `ci.yml` (lint+test на PR), `deploy.yml` (build arm64 → GHCR → SSH deploy → alembic upgrade → healthcheck) | OPUS |
-| 0.4 | Секреты в GitHub (`SSH_HOST`, `SSH_KEY`, `.env` прод), branch protection на `main` | ВЫ |
-| 0.5 | Pre-commit хуки, ruff/eslint/prettier конфиги, шаблон PR | QWEN |
+| # | Задача | Кто | Статус |
+|---|---|---|---|
+| 0.1 | Сервер: Docker, пользователь `deploy`, SSH-ключ, открыть 80/443 в Oracle Security List **и** в iptables (у Oracle Ubuntu есть свои правила!), DNS: `A moozzzer.ekroll.app → IP сервера` в Cloudflare (DNS only) | ВЫ | ✅ |
+| 0.2 | Скелет монорепо: `backend/` (FastAPI + `/api/health`), `apps/web/` (Vite+React+TS+Tailwind), Dockerfiles (multi-stage, arm64), `docker-compose.yml` (dev) и `deploy/docker-compose.prod.yml`, Caddyfile, `.env.example`, `Makefile` | OPUS | ✅ |
+| 0.3 | GitHub Actions: `ci.yml` (lint+test на PR), `deploy.yml` (build arm64 → GHCR → SSH deploy → alembic upgrade → healthcheck) | OPUS | ✅ |
+| 0.4 | Секреты в GitHub (`SSH_HOST`, `SSH_KEY`, `.env` прод), branch protection на `main` | ВЫ | ✅ |
+| 0.5 | Pre-commit хуки, ruff/eslint/prettier конфиги, шаблон PR | QWEN | ✅ |
 
 ✅ Готово, когда: push в `main` → через несколько минут новая версия на `https://moozzzer.ekroll.app`.
 
 ### Этап 1 — Пользователи и авторизация
-| # | Задача | Кто |
-|---|---|---|
-| 1.1 | Модели БД **всего проекта** (схема выше) + первая миграция. Утвердить контракт | OPUS |
-| 1.2 | Auth: register по инвайту, login, refresh-ротация, logout, `/me`, argon2, rate-limit на login, CLI `create-admin` | OPUS |
-| 1.3 | Эндпоинты инвайтов для admin (создать/список/отозвать) — по образцу 1.2 | QWEN |
-| 1.4 | Генерация `packages/api-client` из OpenAPI (скрипт + CI-проверка, что клиент актуален) | QWEN |
-| 1.5 | Web: страницы Login/Register, защищённые роуты, auth-store, авто-refresh | QWEN |
-| 1.6 | Google OAuth (Authorization Code + PKCE), привязка к существующему аккаунту по email | OPUS (можно отложить) |
+| # | Задача | Кто | Статус |
+|---|---|---|---|
+| 1.1 | Модели БД **всего проекта** (схема выше) + первая миграция. Утвердить контракт | OPUS | ✅ |
+| 1.2 | Auth: register по инвайту, login, refresh-ротация, logout, `/me`, argon2, rate-limit на login, CLI `create-admin` | OPUS | ✅ |
+| 1.3 | Эндпоинты инвайтов для admin (создать/список/отозвать) — по образцу 1.2 | QWEN | ⬜ |
+| 1.4 | Генерация `packages/api-client` из OpenAPI (скрипт + CI-проверка, что клиент актуален) | QWEN | ✅ (подключение к web — 8.1) |
+| 1.5 | Web: страницы Login/Register, защищённые роуты, auth-store, авто-refresh | QWEN | ✅ |
+| 1.6 | Google OAuth (Authorization Code + PKCE), привязка к существующему аккаунту по email | OPUS (можно отложить) | ⬜ |
 
 ### Этап 2 — Дизайн-система и оболочка приложения
-| # | Задача | Кто |
-|---|---|---|
-| 2.1 | Дизайн-токены (цвета, типографика, радиусы, тени, motion-пресеты), тёмная тема, шрифт Inter/Geist, иконки lucide | OPUS |
-| 2.2 | Layout: сайдбар слева (Моя волна, Поиск, Медиатека, Плейлисты), центральная область, нижняя панель плеера (пока UI-заглушка) | QWEN |
-| 2.3 | Анимированный фон в центре: mesh-gradient / WebGL-шейдер, цвет подстраивается под обложку текущего трека (fast-average-color), `prefers-reduced-motion` | OPUS |
-| 2.4 | Компоненты: TrackRow, TrackCard, PlaylistCard, Skeleton, EmptyState, Toast — по токенам 2.1 | QWEN |
-| 2.5 | Адаптив (мобильный браузер: сайдбар → нижняя навигация) | QWEN |
+| # | Задача | Кто | Статус |
+|---|---|---|---|
+| 2.1 | Дизайн-токены (цвета, типографика, радиусы, тени, motion-пресеты), тёмная тема, шрифт Inter/Geist, иконки lucide | OPUS | ✅ |
+| 2.2 | Layout: сайдбар слева (Моя волна, Поиск, Медиатека, Плейлисты), центральная область, нижняя панель плеера (пока UI-заглушка) | QWEN | ✅ |
+| 2.3 | Анимированный фон в центре: mesh-gradient / WebGL-шейдер, цвет подстраивается под обложку текущего трека (fast-average-color), `prefers-reduced-motion` | OPUS | ✅ (привязка цвета к обложке — этап 3) |
+| 2.4 | Компоненты: TrackRow, TrackCard, PlaylistCard, Skeleton, EmptyState, Toast — по токенам 2.1 | QWEN | ✅ |
+| 2.5 | Адаптив (мобильный браузер: сайдбар → нижняя навигация) | QWEN | ⬜ |
 
 Ориентир стиля: тёмный минимализм, стекло (backdrop-blur) на панелях, крупные обложки, плавные spring-анимации Framer Motion, shared-layout переход «мини-плеер → полноэкранный плеер».
 
 ### Этап 3 — Ядро плеера и медиатека (без внешних площадок)
 Цель: плеер работает на локальных файлах — проверяем всю цепочку до подключения поиска.
-| # | Задача | Кто |
-|---|---|---|
-| 3.1 | Хранилище: `/data/media/{aa}/{uuid}.{ext}`, подписанные URL, стриминг с Range, обложки | OPUS |
-| 3.2 | Admin-эндпоинт ручной загрузки файла (для тестов и своих mp3), чтение тегов mutagen | QWEN |
-| 3.3 | Плеер (Web): очередь, play/pause/next/prev, seek, громкость, shuffle/repeat, прогресс, **Media Session API** (управление с экрана блокировки/наушников) | OPUS |
-| 3.4 | Медиатека: список, удаление, лайк; эндпоинты `/library` | QWEN |
-| 3.5 | Плейлисты: CRUD, добавление/удаление, drag-n-drop сортировка (dnd-kit) | QWEN |
-| 3.6 | Логика orphan + ночной GC-job | OPUS |
+| # | Задача | Кто | Статус |
+|---|---|---|---|
+| 3.1 | Хранилище: `/data/media/{aa}/{uuid}.{ext}`, подписанные URL, стриминг с Range, обложки | OPUS | ⬜ |
+| 3.2 | Admin-эндпоинт ручной загрузки файла (для тестов и своих mp3), чтение тегов mutagen | QWEN | ⬜ |
+| 3.3 | Плеер (Web): очередь, play/pause/next/prev, seek, громкость, shuffle/repeat, прогресс, **Media Session API** (управление с экрана блокировки/наушников) | OPUS | ⬜ |
+| 3.4 | Медиатека: список, удаление, лайк; эндпоинты `/library` | QWEN | ⬜ |
+| 3.5 | Плейлисты: CRUD, добавление/удаление, drag-n-drop сортировка (dnd-kit) | QWEN | ⬜ |
+| 3.6 | Логика orphan + ночной GC-job | OPUS | ⬜ |
 
 ### Этап 4 — Поиск по площадкам и предпрослушивание
-| # | Задача | Кто |
-|---|---|---|
-| 4.1 | `providers/base.py`: интерфейсы `MetadataProvider`, `AudioProvider`, модели `TrackCandidate`, `AudioSource`; реестр, таймауты, кэш в Redis; **эталонный провайдер** (YouTube Music) | OPUS |
-| 4.2 | Агрегатор поиска: параллельно, нормализация, дедуп, ранжирование, `GET /search?q=` | OPUS |
-| 4.3 | Провайдер Deezer (metadata) — по образцу 4.1 | QWEN |
-| 4.4 | Провайдер iTunes (metadata) — по образцу | QWEN |
-| 4.5 | Провайдер Spotify (metadata, client credentials) — по образцу | QWEN |
-| 4.6 | Провайдер SoundCloud (audio) — по образцу | QWEN, ревью OPUS |
-| 4.7 | Preview-стриминг: `GET /preview/{provider}/{id}` → резолв через yt-dlp → проксирование потока (с Range), кэш резолва | OPUS |
-| 4.8 | Web: строка поиска (debounce), результаты с источником-бейджем, explicit-меткой, кнопки ▶ / ♥ / «в плейлист» | QWEN |
+| # | Задача | Кто | Статус |
+|---|---|---|---|
+| 4.1 | `providers/base.py`: интерфейсы `MetadataProvider`, `AudioProvider`, модели `TrackCandidate`, `AudioSource`; реестр, таймауты, кэш в Redis; **эталонный провайдер** (YouTube Music) | OPUS | 🟡 |
+| 4.2 | Агрегатор поиска: параллельно, нормализация, дедуп, ранжирование, `GET /search?q=` | OPUS | 🟡 |
+| 4.3 | Провайдер Deezer (metadata) — по образцу 4.1 | QWEN | ⬜ |
+| 4.4 | Провайдер iTunes (metadata) — по образцу | QWEN | ⬜ |
+| 4.5 | Провайдер Spotify (metadata, client credentials) — по образцу | QWEN | ⬜ |
+| 4.6 | Провайдер SoundCloud (audio) — по образцу | QWEN, ревью OPUS | 🟡 |
+| 4.7 | Preview-стриминг: `GET /preview/{provider}/{id}` → резолв через yt-dlp → проксирование потока (с Range), кэш резолва | OPUS | 🟡 |
+| 4.8 | Web: строка поиска (debounce), результаты с источником-бейджем, explicit-меткой, кнопки ▶ / ♥ / «в плейлист» | QWEN | 🟡 |
 
 ### Этап 5 — Сохранение треков в библиотеку
-| # | Задача | Кто |
-|---|---|---|
-| 5.1 | `POST /tracks/save`: дедуп (ISRC / provider+id), создание `tracks(status=pending)`, постановка в arq. ISRC нормализовать (upper, без `-`), невалидный → `NULL` (иначе упадёт CHECK `isrc_format`) | OPUS |
-| 5.2 | Worker: скачивание yt-dlp → ffmpeg → теги + обложка → атомарный move → `ready`; ретраи, лимит параллельности (=1–2, у сервера 2 ядра) | OPUS |
-| 5.3 | Статус загрузки на клиенте (polling или SSE), бейдж «загружается» | QWEN |
-| 5.4 | Админ-страница: диск, кол-во треков, очередь, ошибки | QWEN |
-| 5.5 | Бэкапы: ночной `pg_dump` + ротация; (опционально) rclone в Oracle Object Storage | QWEN, ревью OPUS |
+| # | Задача | Кто | Статус |
+|---|---|---|---|
+| 5.1 | `POST /tracks/save`: дедуп (ISRC / provider+id), создание `tracks(status=pending)`, постановка в arq. ISRC нормализовать (upper, без `-`), невалидный → `NULL` (иначе упадёт CHECK `isrc_format`) | OPUS | ⬜ |
+| 5.2 | Worker: скачивание yt-dlp → ffmpeg → теги + обложка → атомарный move → `ready`; ретраи, лимит параллельности (=1–2, у сервера 2 ядра) | OPUS | ⬜ |
+| 5.3 | Статус загрузки на клиенте (polling или SSE), бейдж «загружается» | QWEN | ⬜ |
+| 5.4 | Админ-страница: диск, кол-во треков, очередь, ошибки | QWEN | ⬜ |
+| 5.5 | Бэкапы: ночной `pg_dump` + ротация; (опционально) rclone в Oracle Object Storage | QWEN, ревью OPUS | ⬜ |
 
 ### Этап 6 — «Моя волна» v1
-| # | Задача | Кто |
-|---|---|---|
-| 6.1 | Сбор событий прослушивания (start, progress, skip, complete) — клиент + `POST /events` батчами | QWEN |
-| 6.2 | Алгоритм v1: веса артистов/жанров пользователя + похожие артисты/треки (Last.fm / ListenBrainz API) + коллаборативная фильтрация внутри семьи + «exploration» 20%. Без тяжёлого ML | OPUS |
-| 6.3 | `GET /wave/next` (батч 10), бесконечная очередь в плеере, кнопки «нравится/не то» влияют на волну | QWEN |
+| # | Задача | Кто | Статус |
+|---|---|---|---|
+| 6.1 | Сбор событий прослушивания (start, progress, skip, complete) — клиент + `POST /events` батчами | QWEN | ⬜ |
+| 6.2 | Алгоритм v1: веса артистов/жанров пользователя + похожие артисты/треки (Last.fm / ListenBrainz API) + коллаборативная фильтрация внутри семьи + «exploration» 20%. Без тяжёлого ML | OPUS | ⬜ |
+| 6.3 | `GET /wave/next` (батч 10), бесконечная очередь в плеере, кнопки «нравится/не то» влияют на волну | QWEN | ⬜ |
 
 ### Этап 7 — Полировка web
 PWA (установка на телефон, иконки), offline-кэш последних треков, горячие клавиши, полноэкранный плеер, тексты песен (LRCLIB), i18n, мониторинг (Uptime Kuma), логи. — в основном **QWEN**, ревью **OPUS**.
 
+Статус: ⬜
+
 ### Этап 8 — Мобильные приложения
-| # | Задача | Кто |
-|---|---|---|
-| 8.1 | Монорепо-рефакторинг: вынести общий код (api-client, stores, хуки) в `packages/` (pnpm workspaces) | OPUS |
-| 8.2 | Expo-приложение: auth, навигация, плеер на react-native-track-player (фон, lock screen, CarPlay/Android Auto позже) | OPUS + QWEN |
-| 8.3 | Экраны по образцу web | QWEN |
-| 8.4 | Сборка через EAS, Android APK для семьи; iOS — TestFlight (нужен Apple Developer $99/год) | ВЫ + OPUS |
+| # | Задача | Кто | Статус |
+|---|---|---|---|
+| 8.1 | Монорепо-рефакторинг: вынести общий код (api-client, stores, хуки) в `packages/` (pnpm workspaces) | OPUS | ⬜ |
+| 8.2 | Expo-приложение: auth, навигация, плеер на react-native-track-player (фон, lock screen, CarPlay/Android Auto позже) | OPUS + QWEN | ⬜ |
+| 8.3 | Экраны по образцу web | QWEN | ⬜ |
+| 8.4 | Сборка через EAS, Android APK для семьи; iOS — TestFlight (нужен Apple Developer $99/год) | ВЫ + OPUS | ⬜ |
 
 ### Этап 9 — «Моя волна» v2 (опционально)
 Аудио-эмбеддинги (лёгкая модель, считаются в фоне при сохранении трека) + pgvector, гибридное ранжирование. Проверить нагрузку на 2 ARM-ядра.
+
+Статус: ⬜
 
 ---
 
