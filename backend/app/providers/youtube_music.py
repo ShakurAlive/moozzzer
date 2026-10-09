@@ -28,6 +28,10 @@ _YTDLP_OPTS: dict[str, object] = {
     "no_warnings": True,
     "noplaylist": True,
     "format": "bestaudio/best",
+    # Datacenter IPs (e.g. Oracle Cloud) hit YouTube's "confirm you're not a bot"
+    # wall on the default `web` client. `android_music` bypasses it and returns
+    # audio-only formats (opus/m4a); a fallback to `android` degrades to 360p video.
+    "extractor_args": {"youtube": {"player_client": ["android_music"]}},
 }
 
 
