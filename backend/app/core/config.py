@@ -39,6 +39,14 @@ class Settings(BaseSettings):
     # Yandex Music OAuth token (for the yandex_music metadata provider).
     yandex_music_token: str | None = None
 
+    # --- media storage & streaming (stage 3) ---
+    # Signing key for short-lived streaming URLs (/media/{id}?exp=&sig=). Required in prod;
+    # empty in dev/test = random per process.
+    media_signing_secret: SecretStr = SecretStr("")
+    media_url_ttl_seconds: int = 3600
+    # GC grace period: files of orphaned tracks survive this long before deletion.
+    gc_grace_days: int = 7
+
     @model_validator(mode="after")
     def _check_jwt_secret(self) -> Self:
         secret = self.jwt_secret.get_secret_value()
@@ -48,6 +56,17 @@ class Settings(BaseSettings):
             self.jwt_secret = SecretStr(secrets.token_urlsafe(32))
         elif len(secret) < 32:
             raise ValueError("JWT_SECRET must be at least 32 characters")
+        return self
+
+    @model_validator(mode="after")
+    def _check_media_secret(self) -> Self:
+        secret = self.media_signing_secret.get_secret_value()
+        if not secret:
+            if self.app_env == "prod":
+                raise ValueError("MEDIA_SIGNING_SECRET is required in prod")
+            self.media_signing_secret = SecretStr(secrets.token_urlsafe(32))
+        elif len(secret) < 32:
+            raise ValueError("MEDIA_SIGNING_SECRET must be at least 32 characters")
         return self
 
 

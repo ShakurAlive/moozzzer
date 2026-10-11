@@ -1,19 +1,22 @@
-// UI-level types for the shell. Real API DTOs arrive with the library/player
-// stages; these mirror the expected shape so components don't churn later.
+// UI-level types for the shell and player. These mirror the API DTOs (see
+// `lib/api.ts` -> `trackFromDto` / `playlistFromDto`); components consume these
+// instead of the raw wire types.
 
 export type Track = {
   id: string;
   title: string;
   artist: string;
   album: string | null;
-  duration: number; // seconds
+  durationMs: number | null;
   coverUrl: string | null;
+  mediaUrl: string | null;
   explicit: boolean;
 };
 
 export type Playlist = {
   id: string;
   name: string;
+  description: string | null;
   trackCount: number;
   coverUrl: string | null;
 };

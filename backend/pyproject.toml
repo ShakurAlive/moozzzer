@@ -19,6 +19,7 @@ dependencies = [
     "ytmusicapi>=1.9.0",
     "yt-dlp>=2024.10.22",
     "yandex-music>=2.1",
+    "mutagen>=1.47",
 ]
 
 [dependency-groups]
@@ -52,7 +53,7 @@ plugins = ["pydantic.mypy"]
 files = ["app"]
 
 [[tool.mypy.overrides]]
-module = ["yt_dlp", "ytmusicapi", "yandex_music"]
+module = ["yt_dlp", "ytmusicapi", "yandex_music", "mutagen"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
