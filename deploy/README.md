@@ -26,7 +26,7 @@ Secrets (Settings → Secrets and variables → Actions):
 | `SSH_USER` | `deploy` |
 | `SSH_KEY` | private key (ed25519) whose public part is in `~deploy/.ssh/authorized_keys` |
 | `SSH_KNOWN_HOSTS` | recommended: output of `ssh-keyscan -t ed25519 <host>` (without it the key is trusted on first use) |
-| `PROD_ENV` | full content of the prod `.env` (see `.env.example`: `APP_ENV=prod`, strong `POSTGRES_PASSWORD`, `JWT_SECRET` (>= 32 chars, `openssl rand -base64 48`), `GHCR_OWNER=<lowercase owner>`, `DOMAIN=moozzzer.ekroll.app`, `ACME_EMAIL`) |
+| `PROD_ENV` | full content of the prod `.env` (see `.env.example`: `APP_ENV=prod`, strong `POSTGRES_PASSWORD`, `JWT_SECRET` (>= 32 chars, `openssl rand -base64 48`), `MEDIA_SIGNING_SECRET` (>= 32 chars, `openssl rand -base64 48`), `GHCR_OWNER=<lowercase owner>`, `DOMAIN=moozzzer.ekroll.app`, `ACME_EMAIL`) |
 
 Variables (optional): `USE_QEMU=true` — build arm64 images on x64 runners via QEMU if `ubuntu-24.04-arm` is unavailable.
 
