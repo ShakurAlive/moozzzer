@@ -2,6 +2,8 @@
 // NOTE: these types mirror the OpenAPI schemas; stage 8.1 replaces them with
 // `@moozzzer/api-client`.
 
+import type { Playlist, Track } from "@/lib/types";
+
 export type UserRole = "admin" | "member";
 
 export type UserDto = {
@@ -69,7 +71,7 @@ export function setAccessToken(token: string | null): void {
 }
 
 interface RequestOptions {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   auth?: boolean;
 }
@@ -224,4 +226,118 @@ export async function fetchPreview(provider: string, sourceId: string): Promise<
   }
 
   return response.blob();
+}
+
+// --- library / playlists (stage 3) ---
+
+export type TrackDto = {
+  id: string;
+  title: string;
+  artist: string;
+  album: string | null;
+  duration_ms: number | null;
+  explicit: boolean;
+  cover_url: string | null;
+  media_url: string | null;
+};
+
+export type PlaylistDto = {
+  id: string;
+  name: string;
+  description: string | null;
+  cover_url: string | null;
+  track_count: number;
+};
+
+export type PlaylistDetailDto = PlaylistDto & { tracks: TrackDto[] };
+
+export function trackFromDto(dto: TrackDto): Track {
+  return {
+    id: dto.id,
+    title: dto.title,
+    artist: dto.artist,
+    album: dto.album,
+    durationMs: dto.duration_ms,
+    coverUrl: dto.cover_url,
+    mediaUrl: dto.media_url,
+    explicit: dto.explicit,
+  };
+}
+
+export function playlistFromDto(dto: PlaylistDto): Playlist {
+  return {
+    id: dto.id,
+    name: dto.name,
+    description: dto.description,
+    trackCount: dto.track_count,
+    coverUrl: dto.cover_url,
+  };
+}
+
+export function listLibrary(): Promise<TrackDto[]> {
+  return request<TrackDto[]>("/api/v1/library", { auth: true });
+}
+
+async function requestNoContent(path: string, options: RequestOptions = {}): Promise<void> {
+  await request<unknown>(path, options);
+}
+
+export function addToLibrary(trackId: string): Promise<void> {
+  return requestNoContent(`/api/v1/library/${trackId}`, { method: "PUT", auth: true });
+}
+
+export function removeFromLibrary(trackId: string): Promise<void> {
+  return requestNoContent(`/api/v1/library/${trackId}`, { method: "DELETE", auth: true });
+}
+
+export function listPlaylists(): Promise<PlaylistDto[]> {
+  return request<PlaylistDto[]>("/api/v1/playlists", { auth: true });
+}
+
+export function createPlaylist(input: {
+  name: string;
+  description?: string;
+}): Promise<PlaylistDto> {
+  return request<PlaylistDto>("/api/v1/playlists", { method: "POST", body: input, auth: true });
+}
+
+export function getPlaylist(id: string): Promise<PlaylistDetailDto> {
+  return request<PlaylistDetailDto>(`/api/v1/playlists/${id}`, { auth: true });
+}
+
+export function updatePlaylist(
+  id: string,
+  input: { name?: string; description?: string },
+): Promise<PlaylistDto> {
+  return request<PlaylistDto>(`/api/v1/playlists/${id}`, {
+    method: "PATCH",
+    body: input,
+    auth: true,
+  });
+}
+
+export function deletePlaylist(id: string): Promise<void> {
+  return requestNoContent(`/api/v1/playlists/${id}`, { method: "DELETE", auth: true });
+}
+
+export function addPlaylistTrack(playlistId: string, trackId: string): Promise<void> {
+  return requestNoContent(`/api/v1/playlists/${playlistId}/tracks/${trackId}`, {
+    method: "PUT",
+    auth: true,
+  });
+}
+
+export function removePlaylistTrack(playlistId: string, trackId: string): Promise<void> {
+  return requestNoContent(`/api/v1/playlists/${playlistId}/tracks/${trackId}`, {
+    method: "DELETE",
+    auth: true,
+  });
+}
+
+export function reorderPlaylist(playlistId: string, trackIds: string[]): Promise<void> {
+  return requestNoContent(`/api/v1/playlists/${playlistId}/tracks`, {
+    method: "PUT",
+    body: { track_ids: trackIds },
+    auth: true,
+  });
 }

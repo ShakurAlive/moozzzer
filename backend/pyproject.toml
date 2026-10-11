@@ -5,6 +5,7 @@ description = "Moozzzer API and background worker"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115",
+    "python-multipart>=0.0.9",
     "uvicorn[standard]>=0.32",
     "pydantic>=2.9",
     "pydantic-settings>=2.6",
@@ -19,6 +20,7 @@ dependencies = [
     "ytmusicapi>=1.9.0",
     "yt-dlp>=2024.10.22",
     "yandex-music>=2.1",
+    "mutagen>=1.47",
 ]
 
 [dependency-groups]
@@ -52,7 +54,7 @@ plugins = ["pydantic.mypy"]
 files = ["app"]
 
 [[tool.mypy.overrides]]
-module = ["yt_dlp", "ytmusicapi", "yandex_music"]
+module = ["yt_dlp", "ytmusicapi", "yandex_music", "mutagen"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

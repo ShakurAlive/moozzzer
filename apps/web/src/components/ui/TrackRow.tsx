@@ -21,6 +21,9 @@ export function TrackRow({
   onPlay,
   onMenu,
 }: TrackRowProps) {
+  const duration = track.durationMs !== null ? Math.round(track.durationMs / 1000) : null;
+  const playable = track.mediaUrl !== null;
+
   return (
     <div
       className={cn(
@@ -40,7 +43,8 @@ export function TrackRow({
           type="button"
           aria-label={isPlaying ? t("common.pause") : t("common.play")}
           onClick={onPlay}
-          className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          disabled={!playable}
+          className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 disabled:cursor-not-allowed"
         >
           {isPlaying ? (
             <Pause className="size-4 text-white" aria-hidden />
@@ -67,7 +71,7 @@ export function TrackRow({
           <Equalizer className="text-foreground" />
         ) : (
           <span className="text-muted-foreground text-xs tabular-nums">
-            {formatDuration(track.duration)}
+            {duration !== null ? formatDuration(duration) : "--:--"}
           </span>
         )}
       </div>

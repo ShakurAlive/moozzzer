@@ -4,6 +4,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LibraryPage } from "@/pages/LibraryPage";
 import { LoginPage } from "@/pages/LoginPage";
+import { PlaylistDetailPage } from "@/pages/PlaylistDetailPage";
 import { PlaylistsPage } from "@/pages/PlaylistsPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { SearchPage } from "@/pages/SearchPage";
@@ -34,6 +35,7 @@ export function App() {
         <Route path="search" element={<SearchPage />} />
         <Route path="library" element={<LibraryPage />} />
         <Route path="playlists" element={<PlaylistsPage />} />
+        <Route path="playlists/:playlistId" element={<PlaylistDetailPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/wave" replace />} />

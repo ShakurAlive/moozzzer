@@ -1,80 +1,90 @@
-import { useState } from "react";
+import { Library } from "lucide-react";
+import { useEffect, useState } from "react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { TrackRow } from "@/components/ui/TrackRow";
 import { t } from "@/i18n";
+import { listLibrary, removeFromLibrary, trackFromDto } from "@/lib/api";
 import type { Track } from "@/lib/types";
+import { usePlayerStore } from "@/stores/player";
 import { toast } from "@/stores/toast";
 
-const MOCK_TRACKS: Track[] = [
-  {
-    id: "l1",
-    title: "Blinding Lights",
-    artist: "The Weeknd",
-    album: "After Hours",
-    duration: 200,
-    coverUrl: null,
-    explicit: false,
-  },
-  {
-    id: "l2",
-    title: "Sweater Weather",
-    artist: "The Neighbourhood",
-    album: "I Love You.",
-    duration: 244,
-    coverUrl: null,
-    explicit: false,
-  },
-  {
-    id: "l3",
-    title: "HUMBLE.",
-    artist: "Kendrick Lamar",
-    album: "DAMN.",
-    duration: 177,
-    coverUrl: null,
-    explicit: true,
-  },
-  {
-    id: "l4",
-    title: "Midnight City",
-    artist: "M83",
-    album: "Hurry Up, We're Dreaming",
-    duration: 244,
-    coverUrl: null,
-    explicit: false,
-  },
-  {
-    id: "l5",
-    title: "SICKO MODE",
-    artist: "Travis Scott",
-    album: "ASTROWORLD",
-    duration: 312,
-    coverUrl: null,
-    explicit: true,
-  },
-];
-
 export function LibraryPage() {
-  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const playQueue = usePlayerStore((state) => state.playQueue);
+  const queue = usePlayerStore((state) => state.queue);
+  const index = usePlayerStore((state) => state.index);
+  const isPlaying = usePlayerStore((state) => state.isPlaying);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listLibrary()
+      .then((data) => {
+        if (!cancelled) setTracks(data.map(trackFromDto));
+      })
+      .catch(() => {
+        if (!cancelled) toast({ title: t("library.error"), variant: "error" });
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handlePlay = (trackIndex: number) => {
+    playQueue(tracks, trackIndex);
+  };
+
+  const handleRemove = (track: Track) => {
+    void removeFromLibrary(track.id)
+      .then(() => {
+        setTracks((prev) => prev.filter((item) => item.id !== track.id));
+        toast({ title: t("library.removed") });
+      })
+      .catch(() => {
+        toast({ title: t("library.error"), variant: "error" });
+      });
+  };
 
   return (
     <section className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">{t("page.library.title")}</h1>
 
-      <div className="flex flex-col gap-1">
-        {MOCK_TRACKS.map((track) => (
-          <TrackRow
-            key={track.id}
-            track={track}
-            isActive={playingId === track.id}
-            isPlaying={playingId === track.id}
-            onPlay={() => {
-              setPlayingId((current) => (current === track.id ? null : track.id));
-            }}
-            onMenu={() => {
-              toast({ title: track.title, description: t("toast.comingSoon") });
-            }}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 6 }).map((_, item) => (
+            <Skeleton key={item} className="h-14 w-full" />
+          ))}
+        </div>
+      ) : tracks.length === 0 ? (
+        <EmptyState
+          icon={Library}
+          title={t("empty.library.title")}
+          description={t("empty.library.description")}
+          className="min-h-[50vh] justify-center"
+        />
+      ) : (
+        <div className="flex flex-col gap-1">
+          {tracks.map((track, trackIndex) => (
+            <TrackRow
+              key={track.id}
+              track={track}
+              isActive={queue[index]?.id === track.id}
+              isPlaying={isPlaying && queue[index]?.id === track.id}
+              onPlay={() => {
+                handlePlay(trackIndex);
+              }}
+              onMenu={() => {
+                handleRemove(track);
+              }}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

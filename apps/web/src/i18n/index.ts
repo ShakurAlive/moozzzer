@@ -22,6 +22,10 @@ const ru = {
 
   // Player
   "player.nothingPlaying": "Ничего не играет",
+  "player.seek": "Перемотка",
+  "player.mute": "Выключить звук",
+  "player.unmute": "Включить звук",
+  "player.volume": "Громкость",
 
   // Search
   "search.placeholder": "Что хотите послушать?",
@@ -34,8 +38,25 @@ const ru = {
   "source.youtube_music": "YouTube Music",
   "source.soundcloud": "SoundCloud",
 
+  // Library
+  "library.error": "Не удалось загрузить медиатеку",
+  "library.removed": "Удалено из медиатеки",
+  "empty.library.title": "Медиатека пуста",
+  "empty.library.description": "Добавленные треки появятся здесь.",
+
   // Playlists
   "playlist.create": "Создать плейлист",
+  "playlist.namePlaceholder": "Название плейлиста",
+  "playlist.error": "Не удалось загрузить плейлист",
+  "playlist.removed": "Трек удалён из плейлиста",
+  "playlist.delete": "Удалить плейлист",
+  "playlist.tracks": "треков",
+  "playlist.reorder": "Перетащить",
+  "playlist.addFromLibrary": "Добавить из медиатеки",
+  "empty.playlists.title": "Плейлистов пока нет",
+  "empty.playlists.description": "Создайте первый плейлист и добавьте в него треки.",
+  "empty.playlist.title": "Плейлист пуст",
+  "empty.playlist.description": "Добавьте треки из медиатеки.",
 
   // Toasts
   "toast.comingSoon": "Скоро появится",
