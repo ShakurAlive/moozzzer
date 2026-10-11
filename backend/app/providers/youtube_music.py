@@ -21,18 +21,29 @@ from typing import Any
 from yt_dlp import YoutubeDL
 from ytmusicapi import YTMusic
 
+from app.core.config import get_settings
 from app.providers import base
 
-_YTDLP_OPTS: dict[str, object] = {
-    "quiet": True,
-    "no_warnings": True,
-    "noplaylist": True,
-    "format": "bestaudio/best",
-    # Datacenter IPs (e.g. Oracle Cloud) hit YouTube's "confirm you're not a bot"
-    # wall on the default `web` client. `android_music` bypasses it and returns
-    # audio-only formats (opus/m4a); a fallback to `android` degrades to 360p video.
-    "extractor_args": {"youtube": {"player_client": ["android_music"]}},
-}
+
+def _ytdlp_opts() -> dict[str, object]:
+    """yt-dlp options. Cookies are the reliable fix for YouTube's bot check."""
+    opts: dict[str, object] = {
+        "quiet": True,
+        "no_warnings": True,
+        "noplaylist": True,
+        "format": "bestaudio/best",
+    }
+    cookie_file = get_settings().ytdlp_cookie_file
+    if cookie_file and Path(cookie_file).is_file():
+        # Cookies (Netscape format, exported from a logged-in browser) let the
+        # default `web` client pass the bot check and return the full format set.
+        opts["cookiefile"] = cookie_file
+        opts["extractor_args"] = {"youtube": {"player_client": ["web"]}}
+    else:
+        # Without cookies, `android_music` bypasses the bot check for many (not
+        # all) videos and returns audio-only formats.
+        opts["extractor_args"] = {"youtube": {"player_client": ["android_music"]}}
+    return opts
 
 
 def _parse_duration(value: object) -> int | None:
@@ -93,7 +104,7 @@ def _stream_from_info(info: Any) -> base.StreamInfo:
 
 
 def _ytdlp_extract_stream(source_id: str) -> base.StreamInfo:
-    with YoutubeDL(_YTDLP_OPTS) as ydl:
+    with YoutubeDL(_ytdlp_opts()) as ydl:
         info = ydl.extract_info(f"https://www.youtube.com/watch?v={source_id}", download=False)
     if info is None:
         raise base.ProviderError("youtube_music: no stream info")
@@ -102,7 +113,7 @@ def _ytdlp_extract_stream(source_id: str) -> base.StreamInfo:
 
 def _ytdlp_download(source_id: str, dest_dir: Path) -> Path:
     dest_dir.mkdir(parents=True, exist_ok=True)
-    opts = {**_YTDLP_OPTS, "outtmpl": str(dest_dir / "%(id)s.%(ext)s")}
+    opts = {**_ytdlp_opts(), "outtmpl": str(dest_dir / "%(id)s.%(ext)s")}
     with YoutubeDL(opts) as ydl:
         info = ydl.extract_info(f"https://www.youtube.com/watch?v={source_id}", download=True)
     if info is None:

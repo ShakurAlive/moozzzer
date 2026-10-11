@@ -19,12 +19,14 @@ from app.core.redis import redis_client
 from app.core.security import sha256_hex
 from app.providers import base
 from app.providers.soundcloud import SoundCloudProvider
+from app.providers.yandex_music import YandexMusicProvider
 from app.providers.youtube_music import YouTubeMusicProvider
 
 logger = logging.getLogger(__name__)
 
 _METADATA: dict[str, Callable[[], base.MetadataProvider]] = {
     "youtube_music": YouTubeMusicProvider,
+    "yandex_music": YandexMusicProvider,
 }
 _AUDIO: dict[str, Callable[[], base.AudioProvider]] = {
     "youtube_music": YouTubeMusicProvider,

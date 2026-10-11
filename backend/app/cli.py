@@ -2,12 +2,14 @@
 
 python -m app.cli create-admin --email me@example.com --username me   (password is prompted)
 python -m app.cli create-invite [--days 7]                             (prints the code once)
+python -m app.cli yandex-auth                     (Yandex Music OAuth Device Flow)
 """
 
 import argparse
 import asyncio
 import getpass
 import sys
+import time
 from collections.abc import Coroutine
 from datetime import timedelta
 from typing import Any
@@ -58,6 +60,31 @@ async def _print_invite(days: int) -> None:
     print(f"Invite code (shown once, valid {days} days): {code}")
 
 
+async def yandex_auth() -> None:
+    """Interactive OAuth Device Flow for Yandex Music; prints the access token once granted."""
+    from yandex_music import Client
+
+    client = Client()
+    code = await asyncio.to_thread(client.request_device_code, device_name="Moozzzer")
+    print(f"1. Open: {code.verification_url}")
+    print(f"2. Enter code: {code.user_code}")
+    print("Waiting for authorization...")
+
+    deadline = time.monotonic() + code.expires_in
+    interval = max(code.interval or 5, 1)
+    token = None
+    while time.monotonic() < deadline:
+        token = await asyncio.to_thread(client.poll_device_token, code.device_code)
+        if token is not None:
+            break
+        await asyncio.sleep(interval)
+
+    if token is None:
+        sys.exit("Timed out waiting for authorization")
+    print(f"YANDEX_MUSIC_TOKEN={token.access_token}")
+    print("Add it to .env and add 'yandex_music' to PROVIDERS_METADATA, then redeploy.")
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="python -m app.cli")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -66,10 +93,13 @@ def main(argv: list[str] | None = None) -> None:
     admin.add_argument("--username", required=True)
     invite = sub.add_parser("create-invite", help="create a registration invite code")
     invite.add_argument("--days", type=int, default=auth_service.INVITE_TTL.days)
+    sub.add_parser("yandex-auth", help="get a Yandex Music OAuth token via Device Flow")
     args = parser.parse_args(argv)
 
     if args.command == "create-admin":
         command = create_admin(_prompt_new_admin(args.email, args.username))
+    elif args.command == "yandex-auth":
+        command = yandex_auth()
     else:
         if args.days < 1:
             parser.error("--days must be >= 1")

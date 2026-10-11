@@ -72,3 +72,30 @@ docker compose -f docker-compose.prod.yml exec api python -m app.cli create-invi
 ```
 
 `docker login ghcr.io` is needed for manual `./deploy.sh` with a tag that is not pulled yet.
+
+## YouTube cookies (для надёжного воспроизведения)
+
+YouTube блокирует запросы с датацентровых IP (Oracle Cloud) бот-проверкой
+(«Sign in to confirm you're not a bot»). Без cookies `android_music`-клиент обходит её
+только для части треков. Для стабильного воспроизведения нужны cookies:
+
+1. На своей машине, будучи залогиненным в YouTube, экспортируйте cookies в формате Netscape:
+   - расширение «Get cookies.txt LOCALLY» (Chrome/Firefox), либо
+   - `yt-dlp --cookies-from-browser chrome --cookies cookies.txt` (локальный yt-dlp).
+2. Скопируйте на сервер:
+   `scp cookies.txt deploy@<server>:/opt/moozzzer/cookies.txt`
+3. Пересоздайте контейнеры (файл подключается как `/data/cookies.txt`):
+   `cd /opt/moozzzer && docker compose -f docker-compose.prod.yml up -d --force-recreate api worker`
+
+Cookies протухают — периодически обновляйте файл и пересоздавайте контейнеры.
+
+## Yandex Music (поиск по Яндексу, опционально)
+
+Провайдер `yandex_music` ищет треки через неофициальную библиотеку `yandex-music`
+(нужен OAuth-токен). Токен получается интерактивно через Device Flow:
+
+1. На сервере: `cd /opt/moozzzer && docker compose -f docker-compose.prod.yml exec api python -m app.cli yandex-auth`
+2. Откройте напечатанный `https://ya.ru/device`, введите код, разрешите доступ.
+3. Команда напечатает `YANDEX_MUSIC_TOKEN=<токен>`.
+4. Добавьте в `.env`: `YANDEX_MUSIC_TOKEN=<токен>` и `PROVIDERS_METADATA=youtube_music,yandex_music`.
+5. Передеплой.
