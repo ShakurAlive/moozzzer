@@ -7,6 +7,7 @@ is validated per provider to prevent SSRF.
 """
 
 import json
+import logging
 import re
 from collections.abc import AsyncIterator
 from http import HTTPStatus
@@ -19,6 +20,8 @@ from app.core.errors import AppError
 from app.core.redis import redis_client
 from app.core.security import sha256_hex
 from app.providers import base, registry
+
+logger = logging.getLogger(__name__)
 
 # Only ids safe to put in a URL path segment are previewable; a provider whose
 # source id is a full URL (e.g. SoundCloud) would need a different transport.
@@ -59,6 +62,7 @@ async def _resolve_uncached(provider: str, source_id: str) -> base.StreamInfo:
             try:
                 return await audio.resolve_stream(source)
             except Exception as exc:
+                logger.warning("preview resolve failed for %s:%s: %s", provider, source_id, exc)
                 raise AppError(HTTPStatus.BAD_GATEWAY, "preview_resolve_failed") from exc
     raise AppError(HTTPStatus.NOT_FOUND, "unknown_provider")
 

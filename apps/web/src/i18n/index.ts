@@ -6,12 +6,14 @@ const ru = {
   "nav.search": "Поиск",
   "nav.library": "Медиатека",
   "nav.playlists": "Плейлисты",
+  "nav.admin": "Администрирование",
 
   // Pages
   "page.wave.title": "Моя волна",
   "page.search.title": "Поиск",
   "page.library.title": "Медиатека",
   "page.playlists.title": "Плейлисты",
+  "page.admin.title": "Администрирование",
 
   // Empty states
   "empty.wave.title": "Моя волна скоро появится",
@@ -36,6 +38,7 @@ const ru = {
 
   // Sources
   "source.youtube_music": "YouTube Music",
+  "source.yandex_music": "Яндекс Музыка",
   "source.soundcloud": "SoundCloud",
 
   // Library
@@ -57,6 +60,23 @@ const ru = {
   "empty.playlists.description": "Создайте первый плейлист и добавьте в него треки.",
   "empty.playlist.title": "Плейлист пуст",
   "empty.playlist.description": "Добавьте треки из медиатеки.",
+
+  // Admin
+  "admin.invites.title": "Коды приглашений",
+  "admin.invites.create": "Создать код",
+  "admin.invites.code": "Код (показан один раз)",
+  "admin.invites.expires": "Действует до",
+  "admin.invites.used": "Использован",
+  "admin.invites.revoked": "Отозван",
+  "admin.invites.active": "Активен",
+  "admin.invites.revoke": "Отозвать",
+  "admin.invites.empty": "Пока нет приглашений",
+  "admin.invites.error": "Не удалось загрузить приглашения",
+  "admin.upload.title": "Загрузить трек вручную",
+  "admin.upload.choose": "Выбрать mp3",
+  "admin.upload.submit": "Загрузить",
+  "admin.upload.success": "Трек загружен",
+  "admin.upload.error": "Не удалось загрузить трек",
 
   // Toasts
   "toast.comingSoon": "Скоро появится",

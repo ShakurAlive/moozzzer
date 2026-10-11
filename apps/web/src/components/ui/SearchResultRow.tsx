@@ -7,8 +7,15 @@ import { formatDuration } from "@/lib/format";
 
 function sourceLabel(provider: string): string {
   if (provider === "youtube_music") return t("source.youtube_music");
+  if (provider === "yandex_music") return t("source.yandex_music");
   if (provider === "soundcloud") return t("source.soundcloud");
   return provider;
+}
+
+// Only providers with an audio stream behind the preview endpoint are playable.
+// Yandex Music is metadata-only (DRM) and must not show a play button.
+function isPreviewable(provider: string): boolean {
+  return provider === "youtube_music";
 }
 
 export interface SearchResultRowProps {
@@ -27,6 +34,7 @@ export function SearchResultRow({
   onMenu,
 }: SearchResultRowProps) {
   const duration = result.duration_ms !== null ? Math.round(result.duration_ms / 1000) : null;
+  const previewable = isPreviewable(result.provider);
 
   return (
     <div className="group hover:bg-muted flex items-center gap-3 rounded-md px-2 py-2 transition-colors">
@@ -38,18 +46,20 @@ export function SearchResultRow({
             <Music className="text-muted-foreground size-4" aria-hidden />
           </div>
         )}
-        <button
-          type="button"
-          aria-label={isPlaying ? t("common.pause") : t("common.play")}
-          onClick={onPlay}
-          className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-        >
-          {isPlaying ? (
-            <Pause className="size-4 text-white" aria-hidden />
-          ) : (
-            <Play className="size-4 text-white" aria-hidden />
-          )}
-        </button>
+        {previewable ? (
+          <button
+            type="button"
+            aria-label={isPlaying ? t("common.pause") : t("common.play")}
+            onClick={onPlay}
+            className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          >
+            {isPlaying ? (
+              <Pause className="size-4 text-white" aria-hidden />
+            ) : (
+              <Play className="size-4 text-white" aria-hidden />
+            )}
+          </button>
+        ) : null}
       </div>
 
       <div className="min-w-0 flex-1">
