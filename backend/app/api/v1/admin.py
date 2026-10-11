@@ -13,8 +13,8 @@ router = APIRouter(prefix="/v1/admin", tags=["admin"])
 
 @router.post("/tracks/upload", status_code=status.HTTP_201_CREATED)
 async def upload_track(
-    _admin: AdminUser,
+    admin: AdminUser,
     session: SessionDep,
     file: Annotated[UploadFile, File()],
 ) -> TrackOut:
-    return await upload.upload_track(session, file)
+    return await upload.upload_track(session, admin, file)
