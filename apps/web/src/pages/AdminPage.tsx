@@ -144,20 +144,32 @@ export function AdminPage() {
 
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">{t("admin.upload.title")}</h2>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="audio/*,.mp3,.m4a,.flac,.opus,.ogg,.wav"
+          onChange={(event) => {
+            setFile(event.target.files?.[0] ?? null);
+          }}
+          className="hidden"
+        />
         <div className="flex items-center gap-3">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="audio/*,.mp3,.m4a,.flac,.opus,.ogg,.wav"
-            onChange={(event) => {
-              setFile(event.target.files?.[0] ?? null);
+          <Button
+            onClick={() => {
+              if (file === null) {
+                fileInputRef.current?.click();
+              } else {
+                handleUpload();
+              }
             }}
-            className="text-sm"
-          />
-          <Button onClick={handleUpload} disabled={file === null || uploading}>
+            disabled={uploading}
+          >
             <Upload className="size-4" aria-hidden />
-            {t("admin.upload.submit")}
+            {file === null ? t("admin.upload.choose") : t("admin.upload.submit")}
           </Button>
+          {file !== null ? (
+            <span className="text-muted-foreground truncate text-sm">{file.name}</span>
+          ) : null}
         </div>
       </div>
     </section>

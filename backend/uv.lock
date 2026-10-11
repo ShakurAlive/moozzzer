@@ -479,7 +479,7 @@ requires-dist = [
     { name = "redis", specifier = ">=5.2" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },
-    { name = "yandex-music", specifier = ">=2.1" },
+    { name = "yandex-music", specifier = ">=3.2.2" },
     { name = "yt-dlp", specifier = ">=2024.10.22" },
     { name = "ytmusicapi", specifier = ">=1.9.0" },
 ]
@@ -957,15 +957,15 @@ wheels = [
 
 [[package]]
 name = "yandex-music"
-version = "3.2.1"
+version = "3.2.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "requests", extra = ["socks"] },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/56/13/199089bed182755a8043b40dcb320e168d052413891c01f2129e4a225a98/yandex_music-3.2.1.tar.gz", hash = "sha256:ab4a02e9fc9790a78a03677e64f5d29673947806294380ce06a80dd2aece3e3e", size = 335741, upload-time = "2026-10-07T13:43:01.119Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fe/a0/69ea55bdff91f2e4a996d08ce89402e56be46a6c7a9ac5d9a9c5e76436ee/yandex_music-3.2.2.tar.gz", hash = "sha256:eb0b4240521ce2d04fff876c9dada7ece6545937997ba120fcfaa813ef8256b2", size = 344503, upload-time = "2026-10-10T23:47:56.716Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9a/06/b777ad29f3d5a8b6c7a4a337670569bf12e0b1f1975489a1041e8ed006af/yandex_music-3.2.1-py3-none-any.whl", hash = "sha256:f13f42125d10eab5e8e488bbaf1efd4b3bd9c2cc4d62a82280b6e4db8184c4a8", size = 406258, upload-time = "2026-10-07T13:42:59.407Z" },
+    { url = "https://files.pythonhosted.org/packages/78/3d/4735a1171d293e6b4bb46e5f271cd4d62f6b74f5c28c494afa99a720df44/yandex_music-3.2.2-py3-none-any.whl", hash = "sha256:f2e603530c74a4affd2bead6f42e7b17c5e83732a2dda752206ef6c0d3dbf515", size = 412799, upload-time = "2026-10-10T23:47:54.812Z" },
 ]
 
 [[package]]
