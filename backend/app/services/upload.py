@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.errors import AppError
 from app.db.enums import TrackStatus
-from app.db.models import Track
+from app.db.models import Track, User, UserLibrary
 from app.services import audio_tags, media, tracks
 from app.services.tracks import TrackOut
 
@@ -29,7 +29,7 @@ def _cover_ext(mime: str | None) -> str:
     return _COVER_EXT.get(mime or "", "jpg")
 
 
-async def upload_track(session: AsyncSession, file: UploadFile) -> TrackOut:
+async def upload_track(session: AsyncSession, user: User, file: UploadFile) -> TrackOut:
     data = await file.read()
     if not data:
         raise AppError(400, "empty_file")
@@ -83,6 +83,10 @@ async def upload_track(session: AsyncSession, file: UploadFile) -> TrackOut:
             status=TrackStatus.READY,
         )
         session.add(track)
+        # Add to the uploader's library so the track is immediately visible in
+        # their Медиатека and is referenced (otherwise GC would collect it as
+        # orphaned, since nothing would point to it).
+        session.add(UserLibrary(user_id=user.id, track_id=track.id))
         await session.commit()
     except Exception:
         await session.rollback()

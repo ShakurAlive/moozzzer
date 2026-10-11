@@ -1,5 +1,6 @@
 """Tests for the admin manual upload endpoint (stage 3.2)."""
 
+import uuid
 from io import BytesIO
 from pathlib import Path
 
@@ -9,12 +10,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
 from app.core.errors import AppError
+from app.db.models import User
 from app.services import audio_tags, media, upload
 from app.services.audio_tags import AudioTags
 
 
 def make_settings(root: Path) -> Settings:
     return Settings(media_signing_secret="s" * 32, media_root=str(root))
+
+
+def make_user() -> User:
+    suffix = uuid.uuid4().hex[:8]
+    return User(email=f"u{suffix}@example.com", username=f"u{suffix}", password_hash="x")
 
 
 def _install(monkeypatch: pytest.MonkeyPatch, root: Path) -> Settings:
@@ -40,8 +47,12 @@ async def test_upload_track(
     )
     monkeypatch.setattr(audio_tags, "extract", lambda path: tags)
 
+    user = make_user()
+    db_session.add(user)
+    await db_session.flush()
+
     file = UploadFile(BytesIO(b"fake-mp3-data"), filename="song.mp3")
-    result = await upload.upload_track(db_session, file)
+    result = await upload.upload_track(db_session, user, file)
 
     assert result.title == "Song"
     assert result.artist == "Artist"
@@ -68,8 +79,12 @@ async def test_upload_writes_cover(
     )
     monkeypatch.setattr(audio_tags, "extract", lambda path: tags)
 
+    user = make_user()
+    db_session.add(user)
+    await db_session.flush()
+
     file = UploadFile(BytesIO(b"data"), filename="song.mp3")
-    result = await upload.upload_track(db_session, file)
+    result = await upload.upload_track(db_session, user, file)
 
     assert result.cover_url is not None
     cover_path = tmp_path / result.id.hex[:2] / f"{result.id}.cover.jpg"
@@ -86,8 +101,12 @@ async def test_upload_rejects_non_audio(
 
     monkeypatch.setattr(audio_tags, "extract", fail)
 
+    user = make_user()
+    db_session.add(user)
+    await db_session.flush()
+
     file = UploadFile(BytesIO(b"not audio"), filename="x.txt")
     with pytest.raises(AppError) as exc:
-        await upload.upload_track(db_session, file)
+        await upload.upload_track(db_session, user, file)
 
     assert exc.value.code == "unsupported_media_type"
