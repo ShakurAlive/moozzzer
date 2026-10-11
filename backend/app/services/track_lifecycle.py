@@ -11,8 +11,9 @@ import uuid
 from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any, cast
 
-from sqlalchemy import func, select, union, update
+from sqlalchemy import CursorResult, func, select, union, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import PlaylistTrack, Track, UserLibrary
@@ -67,15 +68,21 @@ async def reconcile_orphans(session: AsyncSession) -> int:
     referenced = union(select(UserLibrary.track_id), select(PlaylistTrack.track_id)).subquery()
     now = datetime.now(UTC)
 
-    cleared = await session.execute(
-        update(Track)
-        .where(Track.id.in_(select(referenced.c.track_id)), Track.orphaned_at.is_not(None))
-        .values(orphaned_at=None)
+    cleared = cast(
+        CursorResult[Any],
+        await session.execute(
+            update(Track)
+            .where(Track.id.in_(select(referenced.c.track_id)), Track.orphaned_at.is_not(None))
+            .values(orphaned_at=None)
+        ),
     )
-    orphaned = await session.execute(
-        update(Track)
-        .where(Track.id.not_in(select(referenced.c.track_id)), Track.orphaned_at.is_(None))
-        .values(orphaned_at=now)
+    orphaned = cast(
+        CursorResult[Any],
+        await session.execute(
+            update(Track)
+            .where(Track.id.not_in(select(referenced.c.track_id)), Track.orphaned_at.is_(None))
+            .values(orphaned_at=now)
+        ),
     )
     return cleared.rowcount + orphaned.rowcount
 

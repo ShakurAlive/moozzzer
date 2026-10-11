@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 from arq import cron
 from arq.connections import RedisSettings
@@ -14,7 +14,7 @@ async def ping(_ctx: dict[str, Any]) -> str:
     return "pong"
 
 
-async def gc_media(_ctx: dict[str, Any]) -> dict[str, int]:
+async def gc_media(_ctx: dict[Any, Any]) -> dict[str, int]:
     """Nightly job (stage 3.6): reconcile orphans, collect garbage, unlink files."""
     settings = get_settings()
     older_than = datetime.now(UTC) - timedelta(days=settings.gc_grace_days)
@@ -39,7 +39,9 @@ async def gc_media(_ctx: dict[str, Any]) -> dict[str, int]:
 
 class WorkerSettings:
     functions: ClassVar[list[Any]] = [ping, gc_media]
-    cron_jobs: ClassVar[list[Any]] = [cron(gc_media, hour=3, minute=30)]
+    # cast: arq's `WorkerCoroutine` Protocol requires `__qualname__`, which mypy does not
+    # expose on a plain `Callable`; the cast documents that gc_media is a valid worker coroutine.
+    cron_jobs: ClassVar[list[Any]] = [cron(cast(Any, gc_media), hour=3, minute=30)]
     redis_settings = RedisSettings.from_dsn(str(get_settings().redis_url))
     # Server has 2 vCPU; audio conversion is CPU-bound.
     max_jobs = 2

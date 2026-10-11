@@ -21,19 +21,19 @@ from app.services import media
 router = APIRouter(prefix="/v1/media", tags=["media"])
 
 
-async def _ready_track(session: SessionDep, track_id: UUID) -> Track:
+async def _track_file_path(session: SessionDep, track_id: UUID) -> str:
+    """DB-stored relative file path of a ready track (404 for anything else)."""
     track = await session.get(Track, track_id)
     if track is None or track.status is not TrackStatus.READY or not track.file_path:
         raise AppError(404, "track_not_found")
-    return track
+    return track.file_path
 
 
 @router.get("/{track_id}")
 async def stream_audio(track_id: UUID, exp: str, sig: str, session: SessionDep) -> FileResponse:
     if not media.verify(track_id, exp, sig):
         raise AppError(403, "invalid_media_url")
-    track = await _ready_track(session, track_id)
-    path = media.resolve(track.file_path)
+    path = media.resolve(await _track_file_path(session, track_id))
     if not path.is_file():
         raise AppError(404, "media_missing")
     return FileResponse(path, media_type=media.guess_media_type(path))

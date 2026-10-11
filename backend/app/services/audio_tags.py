@@ -105,9 +105,10 @@ def extract(path: Path) -> AudioTags:
         raise ValueError("unrecognized audio format")
 
     info = getattr(audio, "info", None)
-    duration_ms = round(float(info.length) * 1000) if getattr(info, "length", None) else None
+    length = getattr(info, "length", None)
+    duration_ms = round(float(length) * 1000) if length is not None else None
     bitrate = getattr(info, "bitrate", None)
-    bitrate_kbps = round(int(bitrate) / 1000) if bitrate else None
+    bitrate_kbps = round(int(bitrate) / 1000) if bitrate is not None else None
 
     cover_bytes, cover_mime = _extract_cover(audio)
 
