@@ -83,6 +83,24 @@ class UserOut(BaseModel):
     created_at: datetime
 
 
+class InviteOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    created_at: datetime
+    expires_at: datetime
+    used_at: datetime | None
+    revoked_at: datetime | None
+
+
+class InviteCreated(BaseModel):
+    """Created invite; the plain code is shown once and never stored."""
+
+    id: uuid.UUID
+    code: str
+    expires_at: datetime
+
+
 @dataclass(frozen=True, slots=True)
 class IssuedTokens:
     access_token: str
@@ -161,6 +179,19 @@ async def create_invite(
     session.add(invite)
     await session.flush()
     return invite, code
+
+
+async def list_invites(session: AsyncSession) -> list[InviteOut]:
+    invites = await session.scalars(select(Invite).order_by(Invite.created_at.desc()).limit(100))
+    return [InviteOut.model_validate(invite) for invite in invites.all()]
+
+
+async def revoke_invite(session: AsyncSession, invite_id: uuid.UUID) -> None:
+    invite = await session.get(Invite, invite_id)
+    if invite is None:
+        raise AppError(404, "invite_not_found")
+    invite.revoked_at = datetime.now(UTC)
+    await session.commit()
 
 
 async def register(

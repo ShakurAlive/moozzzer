@@ -21,29 +21,23 @@ from typing import Any
 from yt_dlp import YoutubeDL
 from ytmusicapi import YTMusic
 
-from app.core.config import get_settings
 from app.providers import base
 
 
 def _ytdlp_opts() -> dict[str, object]:
-    """yt-dlp options. Cookies are the reliable fix for YouTube's bot check."""
-    opts: dict[str, object] = {
+    """yt-dlp options.
+
+    ``android_music`` is the bot-resistant YouTube client: it bypasses the
+    datacenter-IP bot check and returns audio-only formats. The ``web`` client
+    (even with cookies) is bot-blocked from datacenter IPs, so we don't use it.
+    """
+    return {
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
         "format": "bestaudio/best",
+        "extractor_args": {"youtube": {"player_client": ["android_music"]}},
     }
-    cookie_file = get_settings().ytdlp_cookie_file
-    if cookie_file and Path(cookie_file).is_file():
-        # Cookies (Netscape format, exported from a logged-in browser) let the
-        # default `web` client pass the bot check and return the full format set.
-        opts["cookiefile"] = cookie_file
-        opts["extractor_args"] = {"youtube": {"player_client": ["web"]}}
-    else:
-        # Without cookies, `android_music` bypasses the bot check for many (not
-        # all) videos and returns audio-only formats.
-        opts["extractor_args"] = {"youtube": {"player_client": ["android_music"]}}
-    return opts
 
 
 def _parse_duration(value: object) -> int | None:

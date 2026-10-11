@@ -1,4 +1,4 @@
-import { AudioWaveform, Library, ListMusic, LogOut, Music2, Search } from "lucide-react";
+import { AudioWaveform, Library, ListMusic, LogOut, Music2, Search, Settings } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { IconButton } from "@/components/ui/IconButton";
 import { t, type MessageKey } from "@/i18n";
@@ -47,6 +47,22 @@ export function Sidebar() {
             {t(labelKey)}
           </NavLink>
         ))}
+        {user?.role === "admin" ? (
+          <NavLink
+            to="/admin"
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )
+            }
+          >
+            <Settings className="size-5" aria-hidden />
+            {t("nav.admin")}
+          </NavLink>
+        ) : null}
       </nav>
 
       <div className="border-border/50 flex items-center gap-2 border-t pt-4">

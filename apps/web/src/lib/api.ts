@@ -341,3 +341,63 @@ export function reorderPlaylist(playlistId: string, trackIds: string[]): Promise
     auth: true,
   });
 }
+
+// --- invites (admin) ---
+
+export type InviteDto = {
+  id: string;
+  created_at: string;
+  expires_at: string;
+  used_at: string | null;
+  revoked_at: string | null;
+};
+
+export type InviteCreatedDto = {
+  id: string;
+  code: string;
+  expires_at: string;
+};
+
+export function listInvites(): Promise<InviteDto[]> {
+  return request<InviteDto[]>("/api/v1/invites", { auth: true });
+}
+
+export function createInvite(): Promise<InviteCreatedDto> {
+  return request<InviteCreatedDto>("/api/v1/invites", { method: "POST", auth: true });
+}
+
+export function revokeInvite(id: string): Promise<void> {
+  return requestNoContent(`/api/v1/invites/${id}`, { method: "DELETE", auth: true });
+}
+
+// --- admin manual upload (multipart, so it bypasses the JSON `request` helper) ---
+
+export async function uploadTrack(file: File): Promise<TrackDto> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const authHeaders = (): Record<string, string> =>
+    accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+
+  let response = await fetch("/api/v1/admin/tracks/upload", {
+    method: "POST",
+    headers: authHeaders(),
+    credentials: "include",
+    body: formData,
+  });
+
+  if (response.status === 401) {
+    await refreshAccessToken();
+    response = await fetch("/api/v1/admin/tracks/upload", {
+      method: "POST",
+      headers: authHeaders(),
+      credentials: "include",
+      body: formData,
+    });
+  }
+
+  if (!response.ok) {
+    throw await toApiError(response);
+  }
+  return (await response.json()) as TrackDto;
+}
