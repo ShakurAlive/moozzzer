@@ -26,7 +26,9 @@ def _map_track(track: Any) -> base.TrackCandidate | None:
     album = str(albums[0].title) if albums else None
 
     cover_uri = getattr(track, "cover_uri", None)
-    cover_url = f"https://{cover_uri}" if cover_uri else None
+    # Yandex returns cover_uri as a template ending in "%%" — a size placeholder
+    # (e.g. ".../get-music-content/.../%%"). Replace it to get a real image URL.
+    cover_url = f"https://{cover_uri.replace('%%', '200x200')}" if cover_uri else None
 
     return base.TrackCandidate(
         provider="yandex_music",
