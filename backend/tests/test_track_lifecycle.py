@@ -87,6 +87,11 @@ async def test_reconcile_orphans(db_session: AsyncSession) -> None:
     changed = await track_lifecycle.reconcile_orphans(db_session)
     await db_session.flush()
 
+    # reconcile_orphans uses bulk UPDATEs, which don't sync the ORM identity map —
+    # re-read the rows to observe their new orphaned_at values.
+    await db_session.refresh(orphan)
+    await db_session.refresh(referenced)
+
     assert orphan.orphaned_at is not None
     assert referenced.orphaned_at is None
     assert changed == 1
