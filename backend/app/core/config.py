@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     providers_timeout_seconds: float = 10.0
     providers_cache_ttl_seconds: int = 300
     providers_stream_cache_ttl_seconds: int = 1800
+    # yt-dlp cookies (Netscape format) — YouTube blocks datacenter IPs without auth.
+    ytdlp_cookie_file: str = "/data/cookies.txt"
+    # Yandex Music OAuth token (for the yandex_music metadata provider).
+    yandex_music_token: str | None = None
 
     @model_validator(mode="after")
     def _check_jwt_secret(self) -> Self:

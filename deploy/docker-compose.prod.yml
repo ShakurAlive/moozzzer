@@ -20,6 +20,8 @@ x-backend: &backend
     MEDIA_ROOT: /data/media
   volumes:
     - media:/data/media
+    # YouTube cookies (Netscape format) for yt-dlp; optional — see deploy/README.md.
+    - ./cookies.txt:/data/cookies.txt:ro
   depends_on:
     postgres:
       condition: service_healthy
